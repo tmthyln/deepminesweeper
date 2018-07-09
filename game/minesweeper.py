@@ -104,6 +104,20 @@ class Grid(object):
         return string
 
 
+class Minesweeper:
+    def start(self):
+        pass
+
+    def step(self):
+        pass
+
+    def act(self, action):
+        pass
+
+    def get_display(self):
+        pass
+
+
 def create_and_run_game():
     pygame.init()
     screen = pygame.display.set_mode((700, 900), pygame.RESIZABLE)
