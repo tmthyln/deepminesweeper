@@ -29,6 +29,3 @@ Metrics: knowledge of the board state, completion/percentage of cells opened, ne
 - reward of participation: OoS (open over sites)
 - reward of knowledge: msd (mean squared degree)
 - cost of mines: MoS (mines over sites)
-
-#### Possible Ideas
-- weighted to encourage making riskier choices (perhaps weighted by cell degree+1)
