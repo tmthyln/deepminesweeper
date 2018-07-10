@@ -19,6 +19,15 @@ When you 'open' a cell:
 
 ### RL Agent
 Input: masks containing environment states
-Output: soft bitmask containing choices of cells to open
-Reward: knowledge of the board state, completion/percentage of cells opened, negative for opening mines
+- visibility matrix: whether each cell is {BLOCKED, INVISIBLE_MINE, VISIBLE_MINE, INVISIBLE_BLANK, VISIBLE_BLANK}
+- proximity matrix: how many mines are in the vicinity of each cell
+
+Output: coordinates of cell to open
+
+Metrics: knowledge of the board state, completion/percentage of cells opened, negative for opening mines
+- reward of participation: OoS (open over sites)
+- reward of knowledge: msd (mean squared degree)
+- cost of mines: MoS (mines over sites)
+
+#### Possible Ideas
 - weighted to encourage making riskier choices (perhaps weighted by cell degree+1)
