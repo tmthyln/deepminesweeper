@@ -1,10 +1,8 @@
 import numpy as np
 
-from game.minesweeper import Minesweeper
-from game.mineseeders import RandomSeeder
+adjacent_deltas = np.array([[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]])
+start = np.array([[1, 1]])
+vertices = adjacent_deltas + start
 
-game = Minesweeper(seeder=RandomSeeder((25, 25)))
-
-game.start()
-vis, prox = game.step()
+print(vertices)
 

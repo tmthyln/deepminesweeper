@@ -9,6 +9,8 @@ from .cell import Cell
 #  Minesweeper Board: Grid Model (static) & Proximity Matrix  #
 ###############################################################
 class Grid(object):
+    adjacent_deltas = np.array([[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]])
+
     def __init__(self, shape, seeder=Seeder()):
         self.shape = shape
         self.states = np.array([[Cell.INVISIBLE_BLANK] * self.shape[1] for _ in range(self.shape[0])])
@@ -23,6 +25,11 @@ class Grid(object):
         self._validate(row, col)
 
         return self.states[row, col]
+
+    def get_degree(self, row, col):
+        self._validate(row, col)
+
+        return self.prox[row, col]
 
     def open(self, row, col):
         """
@@ -50,6 +57,31 @@ class Grid(object):
         if self.states[row][col] == Cell.VISIBLE_BLANK:
             self._open -= 1
             self.states[row][col] = Cell.INVISIBLE_BLANK
+
+    def propagate(self, row, col):
+        self._validate(row, col)
+
+        assert self.states[row, col] == Cell.VISIBLE_BLANK
+
+        if self.prox[row, col] == 0:
+            self._propagate(row, col)
+
+    def _propagate(self, row, col):
+        start = np.array([[row, col]])
+        vertices = start + self.adjacent_deltas
+
+        for vertex in vertices:
+            x, y = vertex[0], vertex[1]
+
+            try:
+                self._validate(x, y)
+            except ValueError:
+                continue
+
+            if self.states[x, y] == Cell.INVISIBLE_BLANK:
+                self.open(x, y)
+                if self.prox[x, y] == 0:
+                    self._propagate(x, y)
 
     def _generate_proximity_matrix(self):
         prox_conv_kern = np.ones((3, 3))
@@ -101,8 +133,15 @@ class Grid(object):
 
         for row in range(self.shape[0]):
             for col in range(self.shape[1]):
-                if self.states[row, col] == Cell.VISIBLE_BLANK:
-                    string += str(self.prox[row, col]) + ' '
+                state = self.states[row, col]
+
+                if state == Cell.VISIBLE_BLANK:
+                    prox = self.prox[row, col]
+
+                    if prox == 0:
+                        string += '  '
+                    else:
+                        string += str(prox) + ' '
                 else:
                     string += str(self.states[row, col]) + ' '
             string += '\n'
@@ -137,12 +176,16 @@ class Minesweeper:
         if not self.running:
             raise ValueError("game is not running")
 
+        # sub-matrices for computation
         tensor_grid = np.reshape(self.grid.states, self.grid.shape + (1,))
         blocked_sites = (tensor_grid == Cell.BLOCKED).astype(int)
         open_sites = (tensor_grid == Cell.VISIBLE_BLANK).astype(int)
         invisible_sites = np.ones(blocked_sites.shape, dtype=int) - blocked_sites - open_sites
 
+        # visibility matrix
         vis_matrix = np.concatenate((blocked_sites, invisible_sites, open_sites), axis=2)
+
+        # proximity matrix
         prox_matrix = open_sites[..., 0] * self.grid.prox
 
         return vis_matrix, prox_matrix
@@ -156,14 +199,18 @@ class Minesweeper:
         if not self.running:
             raise ValueError("can't act; game is not running")
 
+        # open site
         self.grid.open(position[0], position[1])
         self._running = self.grid.running
+
+        # propagate site opening
+        if self._running:
+            self.grid.propagate(position[0], position[1])
 
         return self.grid.OoS_reward
 
     @property
     def running(self):
-
         return self._running
 
     @property

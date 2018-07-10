@@ -1,3 +1,5 @@
+import numpy as np
+
 from game.mineseeders import Seeder, RandomSeeder
 from game.minesweeper import Minesweeper
 from game.visualizers import *
@@ -27,18 +29,17 @@ class GameRunner:
             move = self.agent.think(vis_matrix, prox_matrix)
 
             # implement move in game
-            result = self.game.act(move)
+            reward = self.game.act(move)
+            self.agent.feedback(reward)
 
             # show result of move
             self._visualize()
-
-        self._visualize()
 
     def _visualize(self):
         self.visualizer.display(self.game.get_displayable_grid())
 
 
 shape = (25, 25)
-game_runner = GameRunner(shape, seeder=RandomSeeder(shape=shape))
+game_runner = GameRunner(shape, seeder=RandomSeeder(shape=shape, mine_ratio=0.1, random_state=np.random.randint(0, 1000)))
 game_runner.run()
 

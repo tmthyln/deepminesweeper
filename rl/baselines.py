@@ -1,6 +1,5 @@
 import numpy as np
 
-from game.cell import Cell
 from rl.agent import Agent
 
 
