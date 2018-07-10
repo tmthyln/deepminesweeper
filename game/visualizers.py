@@ -5,6 +5,7 @@ from pygame.locals import *
 class TextVisualizer:
     def display(self, grid):
         print(grid)
+        print(grid.shape)
 
 
 class WindowedVisualizer:

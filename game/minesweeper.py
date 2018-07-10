@@ -2,7 +2,7 @@ import numpy as np
 from scipy.signal import convolve2d
 
 from .mineseeders import Seeder
-from .cell import Cell, CELL_TYPES
+from .cell import Cell
 
 
 ###############################################################
@@ -76,18 +76,17 @@ class Grid(object):
 #  Minesweeper class (outward facing)  #
 ########################################
 class Minesweeper:
-    def __init__(self):
+    def __init__(self, shape=(25, 25), seeder=Seeder()):
         self.running = False
 
-        self.grid = Grid()
-        pass
+        self.grid = Grid(shape, seeder=seeder)
+        self.grid.generate_proximity_matrix()
 
     def start(self):
         """
         Starts this minesweeper game.
         """
         self.running = True
-        pass
 
     def step(self):
         """
@@ -98,7 +97,18 @@ class Minesweeper:
         proximity matrix: 2D tensor [height, width] describing the number of proximal mines (only valid for visible
         blank sites)
         """
-        pass
+        if not self.running:
+            raise ValueError("game is not running")
+
+        tensor_grid = np.reshape(self.grid.states, self.grid.shape + (1,))
+        blocked_sites = (tensor_grid == Cell.BLOCKED).astype(int)
+        open_sites = (tensor_grid == Cell.VISIBLE_BLANK).astype(int)
+        invisible_sites = np.ones(blocked_sites.shape, dtype=int) - blocked_sites - open_sites
+
+        vis_matrix = np.concatenate((blocked_sites, invisible_sites, open_sites), axis=2)
+        prox_matrix = open_sites[..., 0] * self.grid.prox
+
+        return vis_matrix, prox_matrix
 
     def act(self, position):
         """
@@ -106,11 +116,19 @@ class Minesweeper:
         :param position: tuple of length 2: (row, column)
         :return: boolean, whether the game has ended
         """
-        pass
+        if not self.running:
+            raise ValueError("can't act; game is not running")
+        self.running = self.grid.open(position[0], position[1])
+
+        return self.running
 
     def running(self):
         return self.running
 
     def get_displayable_grid(self):
+        """
+        Returns a set of grids representing the state of the board well-suited for display.
+        :return: grid representing the environment
+        """
         return self.grid
 
