@@ -1,5 +1,5 @@
 import numpy as np
-from .minesweeper import Cell
+from .cell import Cell
 
 
 ####################################
@@ -53,7 +53,7 @@ class RandomSeeder(Seeder):
 
         mined = 0
 
-        while mined < grid.num_mines:
+        while mined < self.num_mines:
             r = np.random.randint(0, grid.shape[0])
             c = np.random.randint(0, grid.shape[1])
 

@@ -1,6 +1,6 @@
 import argparse
-from .game.minesweeper import Minesweeper
-from .game.visualizers import *
+from game.minesweeper import Minesweeper
+from game.visualizers import *
 
 
 class GameRunner:

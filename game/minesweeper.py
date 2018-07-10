@@ -1,30 +1,13 @@
-from enum import Enum
-from .mineseeders import *
+import numpy as np
+from scipy.signal import convolve2d
+
+from .mineseeders import Seeder
+from .cell import Cell, CELL_TYPES
 
 
-###########################################
-#  Minesweeper Board Grid Model (static)  #
-###########################################
-class Cell(Enum):
-    BLOCKED = 0
-    INVISIBLE_MINE = 2
-    INVISIBLE_BLANK = 3
-    VISIBLE_MINE = 4
-    VISIBLE_BLANK = 6
-
-    def __str__(self):
-        if self == Cell.BLOCKED:
-            return 'B'
-        elif self == Cell.INVISIBLE_MINE or self == Cell.INVISIBLE_BLANK:
-            return '#'
-        elif self == Cell.VISIBLE_MINE:
-            return '!'
-        elif self == Cell.VISIBLE_BLANK:
-            return 'O'
-        else:
-            return '?'
-
-
+###############################################################
+#  Minesweeper Board: Grid Model (static) & Proximity Matrix  #
+###############################################################
 class Grid(object):
     def __init__(self, shape, seeder=Seeder()):
         self.shape = shape
@@ -56,7 +39,15 @@ class Grid(object):
             self.states[row][col] = Cell.INVISIBLE_BLANK
 
     def clear_grid(self):
-        self.states = [[Cell.INVISIBLE_BLANK] * self.shape[1] for _ in range(self.shape[0])]
+        self.states = np.array([[Cell.INVISIBLE_BLANK] * self.shape[1] for _ in range(self.shape[0])])
+
+    def generate_proximity_matrix(self):
+        prox_conv_kern = np.ones((3, 3))
+        prox_conv_kern[1, 1] = 0
+
+        base_kern = (self.states == Cell.INVISIBLE_MINE).astype(int)
+
+        self.prox = convolve2d(base_kern, prox_conv_kern, 'same').astype(int)
 
     def _validate(self, row, col):
         if row < 0 or row >= self.shape[0]:
@@ -80,11 +71,13 @@ class Grid(object):
 ########################################
 class Minesweeper:
     def __init__(self):
+        self.running = False
 
         self.grid = Grid()
         pass
 
     def start(self):
+        self.running = True
         pass
 
     def step(self):
@@ -93,10 +86,9 @@ class Minesweeper:
     def act(self, action):
         pass
 
+    def running(self):
+        return self.running
+
     def get_displayable_grid(self):
         return self.grid
 
-
-shape = (15, 40)
-grid = Grid(shape, seeder=RandomSeeder(shape))
-print(grid)
