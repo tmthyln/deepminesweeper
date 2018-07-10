@@ -1,11 +1,10 @@
 from enum import Enum
-import numpy as np
-import pygame
-from pygame.locals import *
-
-PRIMARY_COLOR = (55, 200, 100)
+from .mineseeders import *
 
 
+###########################################
+#  Minesweeper Board Grid Model (static)  #
+###########################################
 class Cell(Enum):
     BLOCKED = 0
     INVISIBLE_MINE = 2
@@ -27,19 +26,11 @@ class Cell(Enum):
 
 
 class Grid(object):
-    def __init__(self, shape, mine_ratio=0.25, blocked_ratio=0.0, load_mines=True):
+    def __init__(self, shape, seeder=Seeder()):
         self.shape = shape
         self.clear_grid()
 
-        total_spots = shape[0] * shape[1]
-        self.num_mines = total_spots * mine_ratio
-        self.num_blocked = total_spots * blocked_ratio
-        self.num_blank = total_spots - self.num_mines - self.num_blocked
-
-        assert 0 <= self.num_blank <= total_spots
-
-        if load_mines:
-            self.load_random_mines()
+        seeder.load_mines(self)
 
     def get_state(self, row, col):
         self._validate(row, col)
@@ -51,41 +42,21 @@ class Grid(object):
 
         if self.states[row][col] == Cell.INVISIBLE_MINE:
             self.states[row][col] = Cell.VISIBLE_MINE
+            return False
         if self.states[row][col] == Cell.INVISIBLE_BLANK:
             self.states[row][col] = Cell.VISIBLE_BLANK
+            return True
 
     def close(self, row, col):
         self._validate(row, col)
 
-        if self.states[row][col] == Cell.VISIBLE_MINE or self.states[row][col] == Cell.VISIBLE_BLANK:
-            self.states[row][col] /= 2
+        if self.states[row][col] == Cell.VISIBLE_MINE:
+            self.states[row][col] = Cell.INVISIBLE_MINE
+        if self.states[row][col] == Cell.VISIBLE_BLANK:
+            self.states[row][col] = Cell.INVISIBLE_BLANK
 
     def clear_grid(self):
         self.states = [[Cell.INVISIBLE_BLANK] * self.shape[1] for _ in range(self.shape[0])]
-
-    def load_random_mines(self, random_state=17):
-        np.random.rand(random_state)
-        self.clear_grid()
-
-        blocked = 0
-
-        while blocked < self.num_blocked:
-            r = np.random.randint(0, self.shape[0])
-            c = np.random.randint(0, self.shape[1])
-
-            if self.states[r][c] == Cell.INVISIBLE_BLANK:
-                self.states[r][c] = Cell.BLOCKED
-                blocked += 1
-
-        mined = 0
-
-        while mined < self.num_mines:
-            r = np.random.randint(0, self.shape[0])
-            c = np.random.randint(0, self.shape[1])
-
-            if self.states[r][c] == Cell.INVISIBLE_BLANK:
-                self.states[r][c] = Cell.INVISIBLE_MINE
-                mined += 1
 
     def _validate(self, row, col):
         if row < 0 or row >= self.shape[0]:
@@ -104,7 +75,15 @@ class Grid(object):
         return string
 
 
+########################################
+#  Minesweeper class (outward facing)  #
+########################################
 class Minesweeper:
+    def __init__(self):
+
+        self.grid = Grid()
+        pass
+
     def start(self):
         pass
 
@@ -114,36 +93,10 @@ class Minesweeper:
     def act(self, action):
         pass
 
-    def get_display(self):
-        pass
+    def get_displayable_grid(self):
+        return self.grid
 
 
-def create_and_run_game():
-    pygame.init()
-    screen = pygame.display.set_mode((700, 900), pygame.RESIZABLE)
-    pygame.display.set_caption('Deep Minesweeper')
-
-    # Fill background
-    background = pygame.Surface(screen.get_size())
-    background = background.convert()
-    background.fill(PRIMARY_COLOR)
-
-    # Blit everything to the screen
-    screen.blit(background, (0, 0))
-    pygame.display.flip()
-
-    while True:
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                return
-
-        screen.blit(background, (0, 0))
-        pygame.display.flip()
-
-
-# create_and_run_game()
-
-grid = Grid((15, 40))
-print(grid)
-grid.open(10, 38)
+shape = (15, 40)
+grid = Grid(shape, seeder=RandomSeeder(shape))
 print(grid)

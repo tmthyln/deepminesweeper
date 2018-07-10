@@ -18,7 +18,7 @@ class GameRunner:
 
             result = self.game.act()  # on moves
 
-            self.visualizer.display(self.game.get_display())
+            self.visualizer.display(self.game.get_displayable_grid())
 
 
 args = argparse.ArgumentParser()
