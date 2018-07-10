@@ -11,14 +11,18 @@ from .cell import Cell
 class Grid(object):
     def __init__(self, shape, seeder=Seeder()):
         self.shape = shape
-        self.clear_grid()
+        self.states = np.array([[Cell.INVISIBLE_BLANK] * self.shape[1] for _ in range(self.shape[0])])
+        self._running = True
 
         seeder.load_mines(self)
+
+        self._generate_proximity_matrix()
+        self._count_sites()
 
     def get_state(self, row, col):
         self._validate(row, col)
 
-        return self.states[row][col]
+        return self.states[row, col]
 
     def open(self, row, col):
         """
@@ -31,29 +35,60 @@ class Grid(object):
 
         if self.states[row][col] == Cell.INVISIBLE_MINE:
             self.states[row][col] = Cell.VISIBLE_MINE
-            return False
+            self._open += 1
+            self._running = False
         if self.states[row][col] == Cell.INVISIBLE_BLANK:
             self.states[row][col] = Cell.VISIBLE_BLANK
-            return True
+            self._open += 1
 
     def close(self, row, col):
         self._validate(row, col)
 
         if self.states[row][col] == Cell.VISIBLE_MINE:
+            self._open -= 1
             self.states[row][col] = Cell.INVISIBLE_MINE
         if self.states[row][col] == Cell.VISIBLE_BLANK:
+            self._open -= 1
             self.states[row][col] = Cell.INVISIBLE_BLANK
 
-    def clear_grid(self):
-        self.states = np.array([[Cell.INVISIBLE_BLANK] * self.shape[1] for _ in range(self.shape[0])])
-
-    def generate_proximity_matrix(self):
+    def _generate_proximity_matrix(self):
         prox_conv_kern = np.ones((3, 3))
         prox_conv_kern[1, 1] = 0
 
         base_kern = (self.states == Cell.INVISIBLE_MINE).astype(int)
 
         self.prox = convolve2d(base_kern, prox_conv_kern, 'same').astype(int)
+
+    def _count_sites(self):
+        self._mines = np.sum((self.states == Cell.INVISIBLE_MINE).astype(int)) + \
+                      np.sum((self.states == Cell.VISIBLE_MINE).astype(int))
+        self._sites = np.sum((self.states == Cell.INVISIBLE_BLANK).astype(int)) + \
+                      np.sum((self.states == Cell.INVISIBLE_MINE).astype(int))
+        self._open = 0
+
+    @property
+    def sites(self):
+        return self._sites
+
+    @property
+    def mines(self):
+        return self._mines
+
+    @property
+    def open_sites(self):
+        return self._open
+
+    @property
+    def running(self):
+        return self._running and self._open < self._sites
+
+    @property
+    def MoS_difficulty(self):
+        return self.mines / self.sites
+
+    @property
+    def OoS_reward(self):
+        return self._open / self.sites
 
     def _validate(self, row, col):
         if row < 0 or row >= self.shape[0]:
@@ -64,9 +99,12 @@ class Grid(object):
     def __str__(self):
         string = ''
 
-        for row in self.states:
-            for elem in row:
-                string += str(elem) + ' '
+        for row in range(self.shape[0]):
+            for col in range(self.shape[1]):
+                if self.states[row, col] == Cell.VISIBLE_BLANK:
+                    string += str(self.prox[row, col]) + ' '
+                else:
+                    string += str(self.states[row, col]) + ' '
             string += '\n'
 
         return string
@@ -77,16 +115,15 @@ class Grid(object):
 ########################################
 class Minesweeper:
     def __init__(self, shape=(25, 25), seeder=Seeder()):
-        self.running = False
+        self._running = False
 
         self.grid = Grid(shape, seeder=seeder)
-        self.grid.generate_proximity_matrix()
 
     def start(self):
         """
         Starts this minesweeper game.
         """
-        self.running = True
+        self._running = True
 
     def step(self):
         """
@@ -114,16 +151,24 @@ class Minesweeper:
         """
         Opens the cell at the position given and determines the running state of the game.
         :param position: tuple of length 2: (row, column)
-        :return: boolean, whether the game has ended
+        :return: OoS score (reward metric)
         """
         if not self.running:
             raise ValueError("can't act; game is not running")
-        self.running = self.grid.open(position[0], position[1])
 
-        return self.running
+        self.grid.open(position[0], position[1])
+        self._running = self.grid.running
 
+        return self.grid.OoS_reward
+
+    @property
     def running(self):
-        return self.running
+
+        return self._running
+
+    @property
+    def difficulty(self):
+        return self.grid.MoS_difficulty
 
     def get_displayable_grid(self):
         """

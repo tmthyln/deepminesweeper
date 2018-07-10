@@ -39,8 +39,6 @@ class RandomSeeder(Seeder):
         np.random.rand(random_state)
 
     def load_mines(self, grid):
-        grid.clear_grid()
-
         blocked = 0
 
         while blocked < self.num_blocked:

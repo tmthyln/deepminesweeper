@@ -3,9 +3,15 @@ from pygame.locals import *
 
 
 class TextVisualizer:
+    def __init__(self):
+        self.step = 0
+
     def display(self, grid):
-        print(grid)
+        self.step += 1
+
+        print(f"Game on Cycle {self.step}:")
         print(grid.shape)
+        print(grid)
 
 
 class WindowedVisualizer:

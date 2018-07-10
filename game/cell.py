@@ -15,7 +15,7 @@ class Cell(Enum):
         elif self == Cell.INVISIBLE_MINE or self == Cell.INVISIBLE_BLANK:
             return '#'
         elif self == Cell.VISIBLE_MINE:
-            return '!'
+            return 'X'
         elif self == Cell.VISIBLE_BLANK:
             return 'O'
         else:
@@ -27,3 +27,4 @@ CELL_TYPES = np.array([Cell.BLOCKED,
                        Cell.INVISIBLE_BLANK,
                        Cell.VISIBLE_MINE,
                        Cell.VISIBLE_BLANK]).reshape((1, 1, 5))
+
