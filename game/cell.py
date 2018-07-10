@@ -21,6 +21,10 @@ class Cell(Enum):
         else:
             return '?'
 
+    @staticmethod
+    def can_be_opened(cell):
+        return cell == Cell.INVISIBLE_BLANK or cell == Cell.INVISIBLE_MINE
+
 
 CELL_TYPES = np.array([Cell.BLOCKED,
                        Cell.INVISIBLE_MINE,

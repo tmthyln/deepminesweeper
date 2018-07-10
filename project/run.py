@@ -1,5 +1,3 @@
-import argparse
-
 from game.mineseeders import Seeder, RandomSeeder
 from game.minesweeper import Minesweeper
 from game.visualizers import *
@@ -39,8 +37,6 @@ class GameRunner:
     def _visualize(self):
         self.visualizer.display(self.game.get_displayable_grid())
 
-
-args = argparse.ArgumentParser()
 
 shape = (25, 25)
 game_runner = GameRunner(shape, seeder=RandomSeeder(shape=shape))
