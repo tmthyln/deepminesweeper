@@ -2,6 +2,7 @@
 
 # deepminesweeper (Deep Learning Minesweeper)
 Requirements: pygame, numpy
+
 Minesweeper is a grid-based game of pure logic and pure chance. Can a computer learn to play it well? Better than humans?
 
 ## Rules of the Game (How to Play for Yourself)
