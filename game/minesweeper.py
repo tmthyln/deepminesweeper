@@ -21,6 +21,12 @@ class Grid(object):
         return self.states[row][col]
 
     def open(self, row, col):
+        """
+        Opens the given position and determines if the underlying cell has a mine.
+        :param row: row of the cell
+        :param col: col of the cell
+        :return: True if game is still running; False if the game has ended from opening this cell
+        """
         self._validate(row, col)
 
         if self.states[row][col] == Cell.INVISIBLE_MINE:
@@ -77,13 +83,29 @@ class Minesweeper:
         pass
 
     def start(self):
+        """
+        Starts this minesweeper game.
+        """
         self.running = True
         pass
 
     def step(self):
+        """
+        Generates the next state of the game and provides the environment of the game.
+        :return: (visibility matrix, proximity matrix) of the environment
+
+        visibility matrix: 3D bit-tensor [height, width, 3] (3 = blocked sites, invisible sites, visible blank sites)
+        proximity matrix: 2D tensor [height, width] describing the number of proximal mines (only valid for visible
+        blank sites)
+        """
         pass
 
-    def act(self, action):
+    def act(self, position):
+        """
+        Opens the cell at the position given and determines the running state of the game.
+        :param position: tuple of length 2: (row, column)
+        :return: boolean, whether the game has ended
+        """
         pass
 
     def running(self):
