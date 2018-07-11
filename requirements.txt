@@ -1,3 +1,4 @@
+matplotlib
 argparse
 numpy
 pygame

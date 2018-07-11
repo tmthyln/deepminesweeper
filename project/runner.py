@@ -1,18 +1,18 @@
-from game.mineseeders import Seeder, RandomSeeder
+from game.mineseeders import Seeder
 from game.minesweeper import Minesweeper
 from game.visualizers import *
 from rl.baselines import RandomAgent
 
 
 class AutoGameRunner:
-    def __init__(self, shape, agent=RandomAgent(), seeder=Seeder(), windowed=False, delay=0):
+    def __init__(self, shape, agent=RandomAgent(), seeder=Seeder(), visualizer=Visualizer(), delay=0):
         self.game = Minesweeper(shape, seeder=seeder)
         self.game.start()
 
         self.agent = agent
         agent.start()
 
-        self.visualizer = WindowedVisualizer() if windowed else TextVisualizer()
+        self.visualizer = visualizer
         self.delay = delay
         self._tick = 0
 
@@ -37,8 +37,24 @@ class AutoGameRunner:
             self._visualize()
 
     @property
-    def tick(self):
+    def ticks(self):
         return self._tick
+
+    @property
+    def mos(self):
+        return self.game.grid.mos
+
+    @property
+    def oos(self):
+        return self.game.grid.oos
+
+    @property
+    def perco(self):
+        return self.game.grid.perco
+
+    @property
+    def msd(self):
+        return self.game.grid.msd
 
     def _visualize(self):
         self.visualizer.display(self.game.get_displayable_grid())

@@ -21,12 +21,12 @@ class Grid(object):
         self._generate_proximity_matrix()
         self._count_sites()
 
-    def get_state(self, row, col):
+    def state_of(self, row, col):
         self._validate(row, col)
 
         return self.states[row, col]
 
-    def get_degree(self, row, col):
+    def degree_of(self, row, col):
         self._validate(row, col)
 
         return self.prox[row, col]
@@ -115,12 +115,20 @@ class Grid(object):
         return self._running and self._open < self._sites
 
     @property
-    def MoS_difficulty(self):
+    def mos(self):
         return self.mines / self.sites
 
     @property
-    def OoS_reward(self):
+    def oos(self):
         return self._open / self.sites
+
+    @property
+    def perco(self):
+        return self.open_sites / (self.sites - self.mines)
+
+    @property
+    def msd(self):
+        return np.sum((self.states == Cell.VISIBLE_BLANK).astype(int) * self.prox) / self.open_sites
 
     def _validate(self, row, col):
         if row < 0 or row >= self.shape[0]:
@@ -207,7 +215,7 @@ class Minesweeper:
         if self._running:
             self.grid.propagate(position[0], position[1])
 
-        return self.grid.OoS_reward
+        return self.grid.oos
 
     @property
     def running(self):

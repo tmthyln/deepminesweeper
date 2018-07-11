@@ -2,7 +2,12 @@ import pygame
 from pygame.locals import *
 
 
-class TextVisualizer:
+class Visualizer:
+    def display(self, grid):
+        pass
+
+
+class TextVisualizer(Visualizer):
     def __init__(self):
         self.step = 0
 
@@ -14,7 +19,7 @@ class TextVisualizer:
         print(grid)
 
 
-class WindowedVisualizer:
+class WindowedVisualizer(Visualizer):
     PRIMARY_COLOR = (55, 200, 100)
 
     def __init__(self):
