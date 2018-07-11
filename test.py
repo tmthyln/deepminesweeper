@@ -1,8 +1,9 @@
 import numpy as np
 
-adjacent_deltas = np.array([[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]])
-start = np.array([[1, 1]])
-vertices = adjacent_deltas + start
+from game.mineseeders import RandomSeeder
+from project.runner import AutoGameRunner
 
-print(vertices)
+shape = (25, 25)
+game_runner = AutoGameRunner(shape, seeder=RandomSeeder(shape=shape, random_state=np.random.randint(0, 1000)))
+game_runner.run()
 

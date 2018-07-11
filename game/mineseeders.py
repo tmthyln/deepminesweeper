@@ -21,7 +21,7 @@ class Seeder:
 
 
 class RandomSeeder(Seeder):
-    def __init__(self, shape, mine_ratio=0.25, blocked_ratio=0.0, random_state=17):
+    def __init__(self, shape, mine_ratio=0.25, blocked_ratio=0.0, random_state=None):
         """
         Seeds the grid randomly based on a percent fill of mines and blocked sites (other sites are blank).
         :param shape: shape of the grid
@@ -36,7 +36,7 @@ class RandomSeeder(Seeder):
 
         assert 0 <= self.num_blank <= total_spots
 
-        np.random.rand(random_state)
+        np.random.rand(random_state if random_state is not None else 17)
 
     def load_mines(self, grid):
         blocked = 0
@@ -68,7 +68,7 @@ class CheckerboardSeeder(Seeder):
 
 
 class RandomFoursSeeder(Seeder):
-    def __init__(self, shape, mine_ratio=0.25, blocked_ratio=0.0, random_state=17):
+    def __init__(self, shape, mine_ratio=0.25, blocked_ratio=0.0, random_state=None):
         total_spots = shape[0] * shape[1]
         self.num_mines = total_spots * mine_ratio
         self.num_blocked = total_spots * blocked_ratio
@@ -76,7 +76,7 @@ class RandomFoursSeeder(Seeder):
 
         assert 0 <= self.num_blank <= total_spots
 
-        np.random.rand(random_state)
+        np.random.rand(random_state if random_state is not None else 17)
 
     def load_mines(self, grid):
         # TODO load mines in 2x2's

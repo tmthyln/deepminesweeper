@@ -194,7 +194,7 @@ class Minesweeper:
         """
         Opens the cell at the position given and determines the running state of the game.
         :param position: tuple of length 2: (row, column)
-        :return: OoS score (reward metric)
+        :return: reward metric
         """
         if not self.running:
             raise ValueError("can't act; game is not running")
@@ -212,10 +212,6 @@ class Minesweeper:
     @property
     def running(self):
         return self._running
-
-    @property
-    def difficulty(self):
-        return self.grid.MoS_difficulty
 
     def get_displayable_grid(self):
         """
