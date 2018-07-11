@@ -1,5 +1,5 @@
 # Deep Learning Minesweeper
-Requirements: pygame, numpy
+An exploration into training a machine to learn how to play Minesweeper built on top of numpy, keras, and tensorflow with interactive elements built on pygame.
 
 Minesweeper is a grid-based game of pure logic and pure chance. Can a computer learn to play it well? Better than humans?
 
@@ -11,17 +11,18 @@ When you 'open' a cell:
 - if there's not a number underneath (adjacent to 0 mines), then the entire connected component is revealed for you
 
 ## Learning Models
+- train an imitation learner that plays like a person
 - learn a reinforcement algorithm that plays the game and develops a sense of the logic
 - train a reinforcement GAN to learn to play the game better in worse conditions
-  - discriminator plays the game
-  - generator produces difficult game boards
+  - discriminator plays the game (maximizes reward)
+  - generator produces difficult game boards (minimizes discriminator's reward **and** number of mines)
 
 ### RL Agent
 Input: masks containing environment states
 - visibility matrix: whether each cell is {BLOCKED, INVISIBLE_MINE, VISIBLE_MINE, INVISIBLE_BLANK, VISIBLE_BLANK}
 - proximity matrix: how many mines are in the vicinity of each cell
 
-Output: coordinates of cell to open
+Output: (normalized) coordinates of cell to open
 
 Metrics: knowledge of the board state, completion/percentage of cells opened, negative for opening mines
 - reward of participation: OoS (open over sites)
