@@ -1,5 +1,6 @@
-import pygame
-from pygame.locals import *
+import matplotlib.pyplot as plt
+
+from game.cell import Cell
 
 
 class Visualizer:
@@ -20,27 +21,13 @@ class TextVisualizer(Visualizer):
 
 
 class WindowedVisualizer(Visualizer):
-    PRIMARY_COLOR = (55, 200, 100)
-
     def __init__(self):
-        pygame.init()
-        self.screen = pygame.display.set_mode((700, 900), pygame.RESIZABLE)
-        pygame.display.set_caption('Deep Minesweeper')
-
-        # Fill background
-        self.background = pygame.Surface(self.screen.get_size())
-        self.background = self.background.convert()
-        self.background.fill(self.PRIMARY_COLOR)
-
-        # Blit everything to the screen
-        self.screen.blit(self.background, (0, 0))
-        pygame.display.flip()
+        plt.ion()
+        plt.show()
 
     def display(self, grid):
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                return
-
-        self.screen.blit(self.background, (0, 0))
-        pygame.display.flip()
+        background = 2 * (grid.states == Cell.VISIBLE_BLANK).astype(int) + \
+                     (grid.states == Cell.INVISIBLE_MINE).astype(int) + \
+                     (grid.states == Cell.INVISIBLE_BLANK).astype(int)
+        plt.imshow(background)
 
