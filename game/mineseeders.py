@@ -36,7 +36,8 @@ class RandomSeeder(Seeder):
 
         assert 0 <= self.num_blank <= total_spots
 
-        np.random.rand(random_state if random_state is not None else 17)
+        if random_state is not None:
+            np.random.rand(random_state)
 
     def load_mines(self, grid):
         blocked = 0
@@ -76,7 +77,8 @@ class RandomFoursSeeder(Seeder):
 
         assert 0 <= self.num_blank <= total_spots
 
-        np.random.rand(random_state if random_state is not None else 17)
+        if random_state is not None:
+            np.random.rand(random_state)
 
     def load_mines(self, grid):
         # TODO load mines in 2x2's
