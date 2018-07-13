@@ -7,39 +7,47 @@ from game.minesweeper import Minesweeper
 
 
 class DrawableGrid:
-    def __init__(self, surface: pygame.Surface, shape: tuple, global_offset=(0, 0), cell_length=5):
+    def __init__(self, screen: pygame.Surface, surface: pygame.Surface,
+                 shape: tuple, global_offset=(0, 0), cell_length=5):
         grid_height, grid_width = shape
         global_left, global_top = global_offset
 
+        self.screen = screen
+
         # generate left and top offsets for all cells
+        self._proto_row = np.array(range(0, cell_length * grid_width, cell_length))
+        self._proto_col = np.array(range(0, cell_length * grid_height, cell_length))
+
         left_offsets = global_left + \
-                       np.array(range(0, cell_length * grid_width, cell_length)).reshape((1, grid_width)) * \
+                       self._proto_row.reshape((1, grid_width)) * \
                        np.ones((grid_height, 1))
         top_offsets = global_top + \
-                       np.array(range(0, cell_length * grid_height, cell_length)).reshape((grid_height, 1)) * \
+                       self._proto_col.reshape((grid_height, 1)) * \
                        np.ones((1, grid_width))
 
-        # preallocate grids for speed
-        self._grid = np.empty(shape, dtype=pygame.Rect)
-        self._subsurfaces = np.empty(shape, dtype=pygame.Surface)
+        # preallocate grids
+        self._grid = [[] * grid_width for _ in range(grid_height)]
+        self._subsurfaces = [[] * grid_width for _ in range(grid_height)]
 
-        # create grid of Rect objects
+        # create grid of Rect objects and subsurfaces
         for row in range(grid_height):
             for col in range(grid_width):
-                self._grid[row, col] = pygame.Rect(left_offsets[row, col], top_offsets[row, col],
+                self._grid[row][col] = pygame.Rect(left_offsets[row, col], top_offsets[row, col],
                                                    cell_length, cell_length)
-
-        # generate subsurfaces
-        for row in range(grid_height):
-            for col in range(grid_width):
-                self._subsurfaces[row, col] = surface.subsurface(self._grid[row, col])
-        print(self._subsurfaces)
+                self._subsurfaces[row][col] = surface.subsurface(self._grid[row][col])
 
     def click(self, point: tuple):
-        pass
+        grid_row, grid_col = self._find_cell(point)
+        self._subsurfaces[grid_row][grid_col].fill((255, 0, 0))
+        print(self._subsurfaces[grid_row][grid_col])
+        self.screen.blit(self._subsurfaces[grid_row][grid_col], (0, 0), area=self._grid[grid_row][grid_col])
 
-    def _find_cell(self, point: tuple):
-        pass
+    def _find_cell(self, point: tuple) -> tuple:
+        # TODO buggy, but was good enough to use to proceed to other code work
+        grid_col = np.searchsorted(self._proto_row, (point[0],))
+        grid_row = np.searchsorted(self._proto_col, (point[1],))
+        print('grid coordinates from click: ', grid_row, grid_col)
+        return grid_row, grid_col
 
 
 class InteractiveGameWindow:
@@ -63,9 +71,9 @@ class InteractiveGameWindow:
         self.base.fill(self.PRIMARY_COLOR)
 
         # create drawable grid from screen
-        self.grid = DrawableGrid(self.base, game.grid.shape)
+        self.grid = DrawableGrid(self.screen, self.base, game.grid.shape)
 
-        # blit everything to the screen
+        # blit initial view to the screen
         self.screen.blit(self.base, (0, 0))
         pygame.display.flip()
 
@@ -91,8 +99,6 @@ class InteractiveGameWindow:
 shape = (40, 40)
 game = Minesweeper(shape, seeder=RandomSeeder(shape))
 gui = InteractiveGameWindow(game)
-
-grid = DrawableGrid(gui.screen, (5, 7))
 
 gui.run()
 

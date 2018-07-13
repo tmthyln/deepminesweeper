@@ -11,7 +11,7 @@ from .cell import Cell
 class Grid(object):
     adjacent_deltas = np.array([[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]])
 
-    def __init__(self, shape, seeder=Seeder()):
+    def __init__(self, shape: tuple, seeder=Seeder()):
         self.shape = shape
         self.states = np.array([[Cell.INVISIBLE_BLANK] * self.shape[1] for _ in range(self.shape[0])])
         self._running = True
@@ -21,17 +21,17 @@ class Grid(object):
         self._generate_proximity_matrix()
         self._count_sites()
 
-    def state_of(self, row, col):
+    def state_of(self, row: int, col: int):
         self._validate(row, col)
 
         return self.states[row, col]
 
-    def degree_of(self, row, col):
+    def degree_of(self, row: int, col: int):
         self._validate(row, col)
 
         return self.prox[row, col]
 
-    def open(self, row, col):
+    def open(self, row: int, col: int):
         """
         Opens the given position and determines if the underlying cell has a mine.
         :param row: row of the cell
@@ -48,7 +48,7 @@ class Grid(object):
             self.states[row][col] = Cell.VISIBLE_BLANK
             self._open += 1
 
-    def close(self, row, col):
+    def close(self, row: int, col: int):
         self._validate(row, col)
 
         if self.states[row][col] == Cell.VISIBLE_MINE:
@@ -58,7 +58,7 @@ class Grid(object):
             self._open -= 1
             self.states[row][col] = Cell.INVISIBLE_BLANK
 
-    def propagate(self, row, col):
+    def propagate(self, row: int, col: int):
         self._validate(row, col)
 
         assert self.states[row, col] == Cell.VISIBLE_BLANK
@@ -66,7 +66,7 @@ class Grid(object):
         if self.prox[row, col] == 0:
             self._propagate(row, col)
 
-    def _propagate(self, row, col):
+    def _propagate(self, row: int, col: int):
         start = np.array([[row, col]])
         vertices = start + self.adjacent_deltas
 
@@ -130,7 +130,7 @@ class Grid(object):
     def msd(self):
         return np.sum((self.states == Cell.VISIBLE_BLANK).astype(int) * self.prox) / self.open_sites
 
-    def _validate(self, row, col):
+    def _validate(self, row: int, col: int):
         if row < 0 or row >= self.shape[0]:
             raise ValueError('row selection should be within the range for current grid')
         if col < 0 or col >= self.shape[1]:
@@ -198,7 +198,7 @@ class Minesweeper:
 
         return vis_matrix, prox_matrix
 
-    def act(self, position):
+    def act(self, position: tuple):
         """
         Opens the cell at the position given and determines the running state of the game.
         :param position: tuple of length 2: (row, column)

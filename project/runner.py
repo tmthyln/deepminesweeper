@@ -5,7 +5,7 @@ from rl.baselines import RandomAgent
 
 
 class AutoGameRunner:
-    def __init__(self, shape, agent=RandomAgent(), seeder=Seeder(), visualizer=Visualizer(), delay=0):
+    def __init__(self, shape: tuple, agent=RandomAgent(), seeder=Seeder(), visualizer=Visualizer(), delay=0):
         self.game = Minesweeper(shape, seeder=seeder)
         self.game.start()
 
@@ -61,7 +61,7 @@ class AutoGameRunner:
 
 
 class InteractiveGameRunner:
-    def __init__(self, shape, seeder=Seeder()):
+    def __init__(self, shape: tuple, seeder=Seeder()):
         self.game = Minesweeper(shape, seeder=seeder)
         self.game.start()
 
