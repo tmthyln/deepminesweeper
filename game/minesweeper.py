@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.signal import convolve2d
 
-from .mineseeders import Seeder
-from .cell import Cell
+from game.mineseeders import Seeder
+from game.cell import Cell
 
 
 ###############################################################

@@ -1,6 +1,4 @@
-matplotlib
 argparse
 numpy
 pygame
 scipy
-tensorflow

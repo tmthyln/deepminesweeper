@@ -1,16 +1,23 @@
 # Deep Learning Minesweeper
-An exploration into training a machine to learn how to play Minesweeper built on top of numpy, keras, and tensorflow with interactive elements built on pygame.
+An exploration into training a machine to learn how to play Minesweeper built using pygame, numpy, and pytorch.
 
-Minesweeper is a grid-based game of pure logic and pure chance. Can a computer learn to play it well? Better than humans?
+Minesweeper is a grid-based game of pure logic and chance (you can always either figure it out, or it's simply a game
+ of probability). Can a computer learn to play it well? _How_ does it learn the game?
 
-## Rules of the Game (How to Play for Yourself)
-Each cell is either blank, has a number (degree in the code), or has a mine. If the cell is blank, it is not touching any mines. The number on the cell tells you how many mines (up to 8) that cell is adjacent to. The goal is to open all cells in the game that are not mines, without detonating a mine (which, in the classic version of the game, detonates ALL the mines).
+## Rules of the Game for Humans
+Each cell can be hidden or open (or _flagged_). Underneath some of the cells is a mine; opening a cell with a mine
+ underneath ends the game. To figure out where the mines are, opening cells without mines underneath will display
+  the number of mines in the 8 cells adjacent to that cell. The goal of the game is to open all cells that don't have
+   mines underneath.
 
-When you 'open' a cell:
-- if there's a mine underneath, the game's over
-- if there's not a number underneath (adjacent to 0 mines), then the entire connected component is revealed for you
+Some usual features of the game:
+- you can 'flag' a cell to mark that you believe there's a mine underneath
+- by double-clicking an open cell (obviously without a mine in it), adjacent cells will be opened for you if the
+ number of adjacent flags matches the number in the cell---this is called chording
+ 
+ TODO: add images for clarification
 
-## Learning Models
+## Possible Learning Models
 - train an imitation learner that plays like a person
 - learn a reinforcement algorithm that plays the game and develops a sense of the logic
 - train a reinforcement GAN to learn to play the game better in worse conditions
@@ -18,9 +25,9 @@ When you 'open' a cell:
   - generator produces difficult game boards (minimizes discriminator's reward **and** number of mines)
 
 ### RL Agent
-Input: masks containing environment states
-- visibility matrix: whether each cell is {BLOCKED, INVISIBLE_MINE, VISIBLE_MINE, INVISIBLE_BLANK, VISIBLE_BLANK}
-- proximity matrix: how many mines are in the vicinity of each cell
+Input: matrices containing environment states
+- visibility mask: whether each cell is {HIDDEN, OPEN, FLAGGED} (in general, FLAGGED just means HIDDEN)
+- proximity (neighbors) matrix: how many mines are in the vicinity of each cell
 
 Output: (normalized) coordinates of cell to open
 
