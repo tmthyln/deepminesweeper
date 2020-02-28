@@ -265,23 +265,23 @@ class Grid(OnScreen):
     ############################################################################
     
     @property
-    def flags(self):
-        return np.sum(self.flag_layout)
+    def flags(self) -> int:
+        return np.sum(self.flag_layout).item()
     
     @property
-    def mines(self):
-        return np.sum(self.mine_layout)
+    def mines(self) -> int:
+        return np.sum(self.mine_layout).item()
     
     @property
-    def open_mines(self):
-        return np.sum(self.mine_layout & self.open_layout)
+    def open_mines(self) -> int:
+        return np.sum(self.mine_layout & self.open_layout).item()
     
     @property
-    def open_cells(self):
-        return np.sum(self.open_layout)
+    def open_cells(self) -> int:
+        return np.sum(self.open_layout).item()
     
     @property
-    def completed(self):
+    def completed(self) -> bool:
         # case 1: all non-mines are open
         # case 2: flags exactly mark all mines
         return np.all(self.mine_layout | self.open_layout) or \
@@ -363,7 +363,7 @@ class Config(object):
     # game play
     fps = 60
     end_on_first_mine = True
-    use_agent = True
+    use_agent = False
     
     # controls
     double_click_time = 400
@@ -431,9 +431,15 @@ class GameWindow(object):
                 else:
                     pass
             
+            # TODO add game end callbacks/hooks
+            completed_or_failed = self.grid.completed or (self.config.end_on_first_mine and self.grid.open_mines > 0)
+            if completed_or_failed:
+                self.resize()
+            
             if len(actions) > 0:
-                print(f'game completion: {self.grid.completed}')
-
+                print(f'game completion: {self.grid.completed}, '
+                      f'game failed: {self.config.end_on_first_mine and self.grid.open_mines > 0}')
+    
             # TODO determine feedback
 
             # update screen
@@ -492,7 +498,7 @@ def start_game():
         agent.start(window.grid.grid_size, config)
         
         # run simulation
-        for openable_layout, proximity_matrix, _ in game_runner := window.run():
+        for openable_layout, proximity_matrix, _ in (game_runner := window.run()):
             agent_actions = agent.act(openable_layout, proximity_matrix)
             
             openable_layout, proximity_matrix, status = game_runner.send(agent_actions)
