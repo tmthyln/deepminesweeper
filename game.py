@@ -11,8 +11,14 @@ import sys
 
 from typing import List, Iterable
 
+from actions import Action, ActionType
+from agents import RandomAgent
 from utils import Delayer
 
+
+################################################################################
+#                                   Graphics                                   #
+################################################################################
 
 class OnScreen(ABC):
     
@@ -61,6 +67,10 @@ class Cell(OnScreen):
         self.blit_ref = np.array(blit_ref)
         self.neighbors = neighbors
         self.state: Cell.State = Cell.State.HIDDEN if hidden else Cell.State.OPEN
+
+    ############################################################################
+    #                                 Actions                                  #
+    ############################################################################
     
     def select(self) -> bool:
         if self.state is Cell.State.HIDDEN:
@@ -84,6 +94,10 @@ class Cell(OnScreen):
             surface = Cell.open_images[self.neighbors]
         
         return surface, self.reference
+
+    ############################################################################
+    #                               Positioning                                #
+    ############################################################################
     
     @property
     def rect(self) -> pygame.Rect:
@@ -100,6 +114,10 @@ class Cell(OnScreen):
     @property
     def size(self) -> np.ndarray:
         return Cell.orig_image_size
+
+    ############################################################################
+    #                                 Graphics                                 #
+    ############################################################################
     
     @classmethod
     def init(cls, _initialized=[False]):
@@ -161,11 +179,7 @@ class Grid(OnScreen):
     #                                 Actions                                  #
     ############################################################################
     
-    def select(self, coords, propagate=True):
-        if not self.rect.collidepoint(*coords):
-            return
-        
-        pos = self.get_cell_pos(coords)
+    def select(self, pos, propagate=True):
         
         # propagate on empty, non-neighboring cells
         if propagate and self.proximity[pos] == 0:
@@ -182,16 +196,10 @@ class Grid(OnScreen):
         
         self.grid[pos].select()
         
-    def toggle_flag(self, coords):
-        if self.rect.collidepoint(*coords):
-            return self.grid[self.get_cell_pos(coords)].toggle_flag()
+    def toggle_flag(self, pos):
+        return self.grid[pos].toggle_flag()
 
-    def chord(self, coords):
-        if not self.rect.collidepoint(*coords):
-            return
-
-        pos = self.get_cell_pos(coords)
-        
+    def chord(self, pos):
         if self.grid[pos].state is not Cell.State.OPEN:
             return
         
@@ -337,6 +345,10 @@ class Grid(OnScreen):
         return neighbors * (1 - mines) - mines
 
 
+################################################################################
+#                                  Game Logic                                  #
+################################################################################
+
 class Config(object):
     # aesthetics
     window_title = 'Minesweeper'
@@ -371,36 +383,58 @@ class GameWindow(object):
         Cell.init()
         
         self.resize()
+        
+        self._last_reward = 0.
 
     def run(self):
         tick_clock = Delayer(initial_fps=self.config.fps)
     
         while True:
             tick_clock.tick_start()
-            action_taken = False
-        
+            
             # handle user events
+            actions: List[Action] = []
             for event in pygame.event.get():
                 if event.type == QUIT:
                     sys.exit(0)
-                elif self._primary_double_clicked(event):
-                    self.grid.chord(event.pos)
-                    action_taken = True
+                elif self._primary_double_clicked(event):  # TODO: add back in intersection checks
+                    pos = self.grid.get_cell_pos(event.pos)
+                    actions.append(Action.chord(pos))
                 elif self._primary_clicked(event):
-                    self.grid.toggle_flag(event.pos) if self.config.click_to_flag else self.grid.select(event.pos)
-                    action_taken = True
+                    pos = self.grid.get_cell_pos(event.pos)
+                    actions.append(Action.flag(pos) if self.config.click_to_flag else Action.select(pos))
                 elif self._secondary_clicked(event):
-                    self.grid.select(event.pos) if self.config.click_to_flag else self.grid.toggle_flag(event.pos)
-                    action_taken = True
+                    pos = self.grid.get_cell_pos(event.pos)
+                    actions.append(Action.select(pos) if self.config.click_to_flag else Action.flag(pos))
                 elif event.type == VIDEORESIZE:
                     self.resize(new_available_space=(event.w, event.h))
         
-            if action_taken:
+            # yield to caller
+            agent_actions = (yield (~self.grid.open_layout,
+                             self.grid.proximity_matrix,
+                             self._last_reward))
+            if agent_actions is not None:
+                actions.extend(agent_actions)
+            
+            # process all actions and determine next reward
+            for action in actions:
+                if action.type == ActionType.SELECT:
+                    self.grid.select(action.pos)
+                elif action.type == ActionType.FLAG:
+                    self.grid.toggle_flag(action.pos)
+                elif action.type == ActionType.CHORD:
+                    self.grid.chord(action.pos)
+                elif action.type == ActionType.SUPERCHORD:
+                    self.grid.superchord()
+                elif action.type == ActionType.SURRENDER:
+                    pass
+                else:
+                    pass
+
+            # TODO process requests and determine reward
+            
+            if len(actions) > 0:
                 print(f'game completion: {self.grid.completed}')
-        
-            # yield to caller and process caller requests
-            requests = (yield ~self.grid.open_layout, self.grid.proximity_matrix)
-            # TODO process requests
 
             # update screen
             self.grid.draw_on(self._screen)
@@ -453,9 +487,17 @@ def start_game():
     config = Config()
     window = GameWindow(config)
     
-    for _ in (game := window.run()):
-        # TODO add agent into the mix
-        game.send(0)
+    agent = RandomAgent()
+    agent.start(window.grid.grid_size, config)
+    
+    # run simulation
+    game_runner = window.run()
+    openable_layout, proximity_matrix, _ = next(game_runner)
+    
+    while True:
+        agent_actions = agent.act(openable_layout, proximity_matrix)
+        openable_layout, proximity_matrix, reward = game_runner.send(agent_actions)
+        agent.react(reward)
 
     
 if __name__ == '__main__':

@@ -71,3 +71,18 @@ class Delayer:
     @property
     def lag_ratio(self):
         return self._ticks.average
+
+
+class TickRepeater:
+    def __init__(self, repeat: int, initial_delay: int = 0):
+        self._repeat_interval = repeat
+        self._wait_ticks = initial_delay
+        
+    def tick(self) -> bool:
+        self._wait_ticks -= 1
+        
+        if self._wait_ticks <= 0:
+            self._wait_ticks = self._repeat_interval
+            return True
+        else:
+            return False
