@@ -3,6 +3,10 @@ from enum import Enum
 
 
 class ActionType(Enum):
+    """
+    Enumeration of Action types.
+    """
+    
     SELECT = (1, True)
     FLAG = (2, True)
     CHORD = (3, True)
@@ -31,6 +35,10 @@ class ActionType(Enum):
 
 
 class Action(ABC):
+    """
+    Class representing an action to be taken on a Minesweeper game board. While a constructor is available,
+    the factory methods (Action.select(), Action.flag(), ...) are preferred.
+    """
     
     def __init__(self, action_type: ActionType, pos: (int, int) = (-1, -1)):
         if action_type.has_pos and pos == (-1, -1):
@@ -38,10 +46,10 @@ class Action(ABC):
         
         self.type = action_type
         self.pos = pos
-
+        
     def __repr__(self):
         termination = f' {self.pos}' if self.type.has_pos else ''
-        return f'{self.type}{termination}'
+        return f'{repr(self.type)}{termination}'
 
     @classmethod
     def select(cls, pos: (int, int)):

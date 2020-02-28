@@ -363,7 +363,7 @@ class Config(object):
     # game play
     fps = 60
     end_on_first_mine = True
-    use_agent = False
+    use_agent = True
     
     # controls
     double_click_time = 400
@@ -389,10 +389,10 @@ class GameWindow(object):
 
     def run(self):
         tick_clock = Delayer(initial_fps=self.config.fps)
-    
+
+        tick_clock.tick_start()
+        
         while True:
-            tick_clock.tick_start()
-            
             # handle user events
             actions: List[Action] = []
             for event in pygame.event.get():
@@ -430,11 +430,11 @@ class GameWindow(object):
                     pass
                 else:
                     pass
-
-            # TODO process requests and determine reward
             
             if len(actions) > 0:
                 print(f'game completion: {self.grid.completed}')
+
+            # TODO determine feedback
 
             # update screen
             self.grid.draw_on(self._screen)
@@ -456,7 +456,7 @@ class GameWindow(object):
         
         grid_size = np.array(self._screen.get_rect().size) // Cell.cell_size
 
-        self.grid = Grid.uniform_random(grid_size, 0.25)
+        self.grid = Grid.uniform_random(grid_size, 0.2)
 
     ############################################################################
     #                              Events & Input                              #
