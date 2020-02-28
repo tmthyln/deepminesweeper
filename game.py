@@ -211,7 +211,7 @@ class Grid(OnScreen):
                 
         if flagged_cells == self.proximity[pos]:
             for adj_pos in self._adjacents(*pos):
-                self.select(self.grid[adj_pos].center)
+                self.select(adj_pos)
     
     def superchord(self):
         pass
@@ -363,6 +363,7 @@ class Config(object):
     # game play
     fps = 60
     end_on_first_mine = True
+    use_agent = False
     
     # controls
     double_click_time = 400
@@ -398,8 +399,7 @@ class GameWindow(object):
                 if event.type == QUIT:
                     sys.exit(0)
                 elif self._primary_double_clicked(event):  # TODO: add back in intersection checks
-                    pos = self.grid.get_cell_pos(event.pos)
-                    actions.append(Action.chord(pos))
+                    actions.append(Action.chord(self.grid.get_cell_pos(event.pos)))
                 elif self._primary_clicked(event):
                     pos = self.grid.get_cell_pos(event.pos)
                     actions.append(Action.flag(pos) if self.config.click_to_flag else Action.select(pos))
@@ -456,7 +456,7 @@ class GameWindow(object):
         
         grid_size = np.array(self._screen.get_rect().size) // Cell.cell_size
 
-        self.grid = Grid.uniform_random(grid_size, 0.05)
+        self.grid = Grid.uniform_random(grid_size, 0.25)
 
     ############################################################################
     #                              Events & Input                              #
@@ -487,17 +487,22 @@ def start_game():
     config = Config()
     window = GameWindow(config)
     
-    agent = RandomAgent()
-    agent.start(window.grid.grid_size, config)
-    
-    # run simulation
-    game_runner = window.run()
-    openable_layout, proximity_matrix, _ = next(game_runner)
-    
-    while True:
-        agent_actions = agent.act(openable_layout, proximity_matrix)
-        openable_layout, proximity_matrix, reward = game_runner.send(agent_actions)
-        agent.react(reward)
+    if config.use_agent:
+        agent = RandomAgent()
+        agent.start(window.grid.grid_size, config)
+        
+        # run simulation
+        game_runner = window.run()
+        openable_layout, proximity_matrix, _ = next(game_runner)
+        
+        while True:
+            agent_actions = agent.act(openable_layout, proximity_matrix)
+            openable_layout, proximity_matrix, reward = game_runner.send(agent_actions)
+            if len(agent_actions) > 0:
+                agent.react(reward)
+    else:
+        for _ in window.run():
+            continue
 
     
 if __name__ == '__main__':
