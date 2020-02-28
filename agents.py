@@ -44,11 +44,14 @@ class Agent(ABC):
         pass
     
     @abstractmethod
-    def react(self, reward):
+    def react(self, openable_matrix: np.ndarray, proximity_matrix: np.ndarray, status):
         """
-        The agent reacts to the result of their actions on the board through the reward received.
+        The agent reacts to the result of their actions on the board based on the new board state (and any saved
+        state) and the status indicators.
         
-        :param reward: reward from last actions
+        :param openable_matrix: binary matrix with ones wherever a cell is not open, zeros elsewhere
+        :param proximity_matrix: for open cells, matrix representing the number of neighboring mines
+        :param status: status indicators for the game and board
         """
         pass
 
@@ -73,6 +76,6 @@ class RandomAgent(Agent):
             return [Action.select(index)]
         else:
             return []
-    
-    def react(self, reward):
+
+    def react(self, openable_matrix: np.ndarray, proximity_matrix: np.ndarray, status):
         pass

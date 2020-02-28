@@ -412,7 +412,7 @@ class GameWindow(object):
             # yield to caller
             agent_actions = (yield (~self.grid.open_layout,
                              self.grid.proximity_matrix,
-                             self._last_reward))
+                             self._last_reward))  # TODO change reward to a status dict/object
             if agent_actions is not None:
                 actions.extend(agent_actions)
             
@@ -492,14 +492,12 @@ def start_game():
         agent.start(window.grid.grid_size, config)
         
         # run simulation
-        game_runner = window.run()
-        openable_layout, proximity_matrix, _ = next(game_runner)
-        
-        while True:
+        for openable_layout, proximity_matrix, _ in game_runner := window.run():
             agent_actions = agent.act(openable_layout, proximity_matrix)
-            openable_layout, proximity_matrix, reward = game_runner.send(agent_actions)
+            
+            openable_layout, proximity_matrix, status = game_runner.send(agent_actions)
             if len(agent_actions) > 0:
-                agent.react(reward)
+                agent.react(openable_layout, proximity_matrix, status)
     else:
         for _ in window.run():
             continue
