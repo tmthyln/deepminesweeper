@@ -3,8 +3,8 @@ from abc import abstractmethod, ABC
 import numpy as np
 import random
 
-from actions import Action
-from utils import TickRepeater
+from minesweeper.actions import Action
+from minesweeper.utils import TickRepeater
 
 from typing import Sequence
 

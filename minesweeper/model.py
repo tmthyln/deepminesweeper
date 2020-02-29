@@ -3,8 +3,8 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 
-from actions import Action
-from agents import Agent
+from minesweeper.actions import Action
+from minesweeper.agents import Agent
 
 from typing import Sequence, Literal
 

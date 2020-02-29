@@ -35,7 +35,7 @@ class TimeMovingAverage:
         :param method: averaging method, either 'weighted' or 'unweighted' (default: 'unweighted')
         """
         
-        self._method = method
+        self.method = method
         
         self._time_window_ms = time_window_ms
         self._timeline: Deque[TimeMovingAverage.TimeValue] = deque()
@@ -44,7 +44,7 @@ class TimeMovingAverage:
         self._time_value_stored = 0
         self._saturated = False
         
-    def add_next(self, time_ms, value):
+    def add_next(self, time_ms: int, value):
         """
         Adds a new element into the moving average.
         
@@ -58,10 +58,12 @@ class TimeMovingAverage:
         self._value_stored += value
         self._time_value_stored += time_ms * value
         
+        # check for saturation
+        if self._time_stored >= self._time_window_ms:
+            self._saturated = True
+        
         # remove earliest values until invariants satisfied
         while len(self._timeline) > 0 and self._time_stored > self._time_window_ms:
-            self._saturated = True
-            
             next_earliest = self._timeline.popleft()
             self._time_stored -= next_earliest.time
             self._value_stored -= next_earliest.value
@@ -81,7 +83,7 @@ class TimeMovingAverage:
         """
         :return: current (moving) average.
         """
-        if self._method == 'weighted':
+        if self.method == 'weighted':
             return self._time_value_stored / self._time_stored if self._time_stored != 0 else 0.
         else:
             return self._value_stored / len(self._timeline) if len(self._timeline) != 0 else 0.

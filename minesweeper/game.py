@@ -1,3 +1,4 @@
+import os
 from abc import abstractmethod, ABC
 from collections import deque
 from enum import Enum
@@ -11,9 +12,8 @@ import sys
 
 from typing import List, Iterable
 
-from actions import Action, ActionType
-from agents import RandomAgent
-from utils import Delayer
+from minesweeper.actions import Action, ActionType
+from minesweeper.utils import Delayer
 
 
 ################################################################################
@@ -350,9 +350,12 @@ class Grid(OnScreen):
 ################################################################################
 
 class Config(object):
+    # files and resource lookup
+    resource_root = 'res'
+    
     # aesthetics
     window_title = 'Minesweeper'
-    favicon_path = 'res/favicon.png'
+    favicon_filename = 'favicon.png'
     bg_color = (0, 120, 0)
     
     # windowing and sizing
@@ -377,7 +380,7 @@ class GameWindow(object):
 
         pygame.init()
         pygame.display.set_caption(config.window_title)
-        pygame.display.set_icon(pygame.image.load(config.favicon_path))
+        pygame.display.set_icon(pygame.image.load(os.path.join(config.resource_root, config.favicon_filename)))
         self._screen = pygame.display.set_mode(config.window_size,
                                                flags=pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
         
@@ -487,27 +490,3 @@ class GameWindow(object):
             
         return valid_dbl_click
         # TODO: maybe implement a multi-click feature
-
-
-def start_game():
-    config = Config()
-    window = GameWindow(config)
-    
-    if config.use_agent:
-        agent = RandomAgent()
-        agent.start(window.grid.grid_size, config)
-        
-        # run simulation
-        for openable_layout, proximity_matrix, _ in (game_runner := window.run()):
-            agent_actions = agent.act(openable_layout, proximity_matrix)
-            
-            openable_layout, proximity_matrix, status = game_runner.send(agent_actions)
-            if len(agent_actions) > 0:
-                agent.react(openable_layout, proximity_matrix, status)
-    else:
-        for _ in window.run():
-            continue
-
-    
-if __name__ == '__main__':
-    start_game()
