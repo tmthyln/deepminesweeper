@@ -1,3 +1,4 @@
+import gamelog
 import os
 from abc import abstractmethod, ABC
 from collections import deque
@@ -392,6 +393,7 @@ class GameWindow(object):
 
     def run(self):
         tick_clock = Delayer(initial_fps=self.config.fps)
+        games_finished = 0
 
         tick_clock.tick_start()
         
@@ -437,6 +439,11 @@ class GameWindow(object):
             # TODO add game end callbacks/hooks
             completed_or_failed = self.grid.completed or (self.config.end_on_first_mine and self.grid.open_mines > 0)
             if completed_or_failed:
+                gamelog.save_board(f'game_user_{games_finished}.npz',
+                                   self.grid.mine_layout,
+                                   self.grid.open_layout,
+                                   self.grid.flag_layout)
+                games_finished += 1
                 self.resize()
             
             if len(actions) > 0:
