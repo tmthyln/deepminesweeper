@@ -1,4 +1,3 @@
-import gamelog
 import os
 from abc import abstractmethod, ABC
 from collections import deque
@@ -8,12 +7,14 @@ import numpy as np
 import pygame
 from pygame.locals import *
 import random
+import re
 from scipy.signal import convolve2d
 import sys
 
 from typing import List, Iterable
 
 from minesweeper.actions import Action, ActionType
+import minesweeper.gamelog as gamelog
 from minesweeper.utils import Delayer
 
 
@@ -350,38 +351,13 @@ class Grid(OnScreen):
 #                                  Game Logic                                  #
 ################################################################################
 
-class Config(object):
-    # files and resource lookup
-    resource_root = 'res'
-    
-    # aesthetics
-    window_title = 'Minesweeper'
-    favicon_filename = 'favicon.png'
-    bg_color = (0, 120, 0)
-    
-    # windowing and sizing
-    window_size = (1280, 780)
-    grid_size = (40, 15)
-    default_cell_size = (32, 32)
-    
-    # game play
-    fps = 60
-    end_on_first_mine = True
-    use_agent = False
-    
-    # controls
-    double_click_time = 400
-    click_to_flag = True
-    use_super_chord = False
-
-
 class GameWindow(object):
-    def __init__(self, config: Config):
+    def __init__(self, config):
         self.config = config
 
         pygame.init()
         pygame.display.set_caption(config.window_title)
-        pygame.display.set_icon(pygame.image.load(os.path.join(config.resource_root, config.favicon_filename)))
+        pygame.display.set_icon(pygame.image.load(os.path.join(config.res_dir, config.favicon_file)))
         self._screen = pygame.display.set_mode(config.window_size,
                                                flags=pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
         
@@ -394,7 +370,13 @@ class GameWindow(object):
     def run(self):
         tick_clock = Delayer(initial_fps=self.config.fps)
         games_finished = 0
-
+        
+        _, _, files = next(os.walk('runs/'))
+        for filename in files:
+            match = re.search(r'^game_user_(\d+).npz$', filename)
+            games_finished = max(games_finished, int(match.group(1)))
+        games_finished += 1
+        
         tick_clock.tick_start()
         
         while True:
