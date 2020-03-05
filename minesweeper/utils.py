@@ -27,6 +27,9 @@ class TimeMovingAverage:
         Note that the window excludes any elements that "cross the boundary," i.e. will not include any elements that
         make the total amount of time exceed the window size.
     """
+    __slots__ = ['method', '_time_window_ms', '_timeline', '_time_stored', '_value_stored', '_time_value_stored',
+                 '_saturated']
+
     TimeValue = namedtuple('TimeValue', ['time', 'value'])
     
     def __init__(self, time_window_ms: int = 20_000, method: Literal['weighted', 'unweighted'] = 'unweighted'):
@@ -97,6 +100,7 @@ class Delayer:
     """
     A class that manages a consistent tick rate, delaying or slowing the overall tick rate as necessary.
     """
+    __slots__ = ['_clock', '_fps', '_ticks']
     
     def __init__(self, initial_fps=30):
         self._clock = pygame.time.Clock()
@@ -148,6 +152,8 @@ class TickRepeater:
             if ticker.tick():
                 <do periodic work>
     """
+    __slots__ = ['_repeat_interval', '_wait_ticks']
+    
     def __init__(self, repeat: int, initial_delay: int = 0):
         """
         Sets up a tick counter with a specific periodicity and initial delay.

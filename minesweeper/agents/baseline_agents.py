@@ -20,6 +20,8 @@ class RandomAgent(Agent):
     A baseline agent that randomly selects a non-open cell until all cells are open.
     """
     
+    __slots__ = ['_ticker']
+    
     def start(self, grid_size, config):
         self._ticker = TickRepeater(10, 60)
     

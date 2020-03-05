@@ -70,7 +70,7 @@ def start_game(config):
     window = GameWindow(config)
     
     if config.use_agent:
-        agent = RandomAgent()
+        agent = minesweeper.AGENT_REGISTRY[config.use_agent]()
         agent.start(window.grid.grid_size, config)
         
         # run simulation
@@ -78,6 +78,7 @@ def start_game(config):
             agent_actions = agent.act(openable_layout, proximity_matrix)
             
             openable_layout, proximity_matrix, status = game_runner.send(agent_actions)
+            # TODO change yielding to 2-part
             if len(agent_actions) > 0:
                 agent.react(openable_layout, proximity_matrix, status)
     else:
