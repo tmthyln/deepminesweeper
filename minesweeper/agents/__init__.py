@@ -1,2 +1,3 @@
 from .baseline_agents import RandomAgent
-from .model import LearnableConvolutionalAgent
+from .multilayer_agents import LearnableConvolutionalAgent
+from .rules_agents import RulesBasedAgent

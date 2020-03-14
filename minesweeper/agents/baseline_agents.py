@@ -23,7 +23,7 @@ class RandomAgent(Agent):
     __slots__ = ['_ticker']
     
     def start(self, grid_size, config):
-        self._ticker = TickRepeater(10, 60)
+        self._ticker = TickRepeater(1000, 2000, time_based=True)
     
     def act(self, openable_matrix: np.ndarray, proximity_matrix: np.ndarray) -> Sequence[Action]:
         possible_coords = np.argwhere(openable_matrix)

@@ -1,5 +1,3 @@
-from .actions import Action, ActionType
-
 from .agent import Agent
 
 VERSION = 'Deep Minesweeper 0.0.1'
@@ -19,3 +17,7 @@ def register_agent(name):
         return cls
     
     return register_agent_class
+
+
+from .actions import Action, ActionType
+import agents

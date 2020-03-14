@@ -11,14 +11,13 @@ import sys
 from typing import List
 
 from minesweeper.actions import Action, ActionType
-import minesweeper.gamelog as gamelog
+import minesweeper.logutils as gamelog
 from minesweeper.utils import Delayer
-
+from minesweeper.seeders import Seeder, uniform_random
 
 ################################################################################
 #                                   Graphics                                   #
 ################################################################################
-from seeders import Seeder, uniform_random
 
 
 class Grid:
@@ -300,10 +299,12 @@ class GameWindow(object):
         tick_clock = Delayer(initial_fps=self.config.fps)
         games_finished = 0
         
+        # TODO automake directory (maybe put into logutils)
         _, _, files = next(os.walk('runs/'))
+        save_filename_pattern = re.compile(r'^game_user_(\d+).npz$')
         for filename in files:
-            match = re.search(r'^game_user_(\d+).npz$', filename)
-            games_finished = max(games_finished, int(match.group(1)))
+            match = save_filename_pattern.match(filename)
+            games_finished = max(games_finished, int(match[1]))
         games_finished += 1
         
         self._grid.redraw(force=True)

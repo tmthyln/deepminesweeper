@@ -6,7 +6,7 @@ from typing import Deque, Literal
 
 
 ################################################################################
-#                               Data Structures                                #
+#                         Data Structures/Collections                          #
 ################################################################################
 
 class TimeMovingAverage:
@@ -120,9 +120,9 @@ class Delayer:
         """
         
         tick_time = self._clock.tick()
-        delay_time = max(0, 1000 // self._fps - tick_time)
+        delay_time = max(0, 1000 // self._fps - tick_time) if self._fps != 0 else 1
 
-        self._ticks.add_next(delay_time, 1. if delay_time == 0 else 0.)
+        self._ticks.add_next(delay_time, delay_time == 0)
         if self._ticks.saturated and delay_time == 0:
             print(f'A tick overloaded, lagging... ({100 * self.lag_ratio:.2f}% of ticks lagging)')
         
@@ -143,7 +143,7 @@ class Delayer:
 
 class TickRepeater:
     """
-    A simple class to manage periodic events based on the number of cycles/ticks passed.
+    A simple class to manage periodic events based on either the number of cycles/ticks passed or time passed.
     
     Typical Code Usage:
         ticker = TickRepeater(20)
@@ -152,9 +152,9 @@ class TickRepeater:
             if ticker.tick():
                 <do periodic work>
     """
-    __slots__ = ['_repeat_interval', '_wait_ticks']
+    __slots__ = ['_repeat_interval', '_wait_ticks', '_tick_generator']
     
-    def __init__(self, repeat: int, initial_delay: int = 0):
+    def __init__(self, repeat: int, initial_delay: int = 0, time_based=False):
         """
         Sets up a tick counter with a specific periodicity and initial delay.
         
@@ -164,13 +164,18 @@ class TickRepeater:
         self._repeat_interval = repeat
         self._wait_ticks = initial_delay
         
+        if time_based:
+            self._tick_generator = pygame.time.Clock().tick
+        else:
+            self._tick_generator = lambda: 1
+        
     def tick(self) -> bool:
         """
         Tick once.
         
         :return: if an execution should occur
         """
-        self._wait_ticks -= 1
+        self._wait_ticks -= self._tick_generator()
         
         if self._wait_ticks <= 0:
             self._wait_ticks = self._repeat_interval
