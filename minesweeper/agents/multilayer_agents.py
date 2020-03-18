@@ -3,11 +3,14 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 
+from minesweeper.board import HiddenBoardState
 from minesweeper import register_agent
 from minesweeper.actions import Action
 from minesweeper import Agent
 
 from typing import Sequence, Literal
+
+__all__ = ['LearnableConvolutionalAgent']
 
 
 class DirectModel(nn.Module):
@@ -28,7 +31,7 @@ class DirectModel(nn.Module):
         return x
 
 
-@register_agent('ConvolutionalAgent')
+@register_agent('deep')
 class LearnableConvolutionalAgent(Agent):
     
     def __init__(self, mode: Literal['train', 'predict']):
@@ -38,16 +41,22 @@ class LearnableConvolutionalAgent(Agent):
     def start(self, grid_size, config):
         pass
 
-    def act(self, openable_matrix: np.ndarray, proximity_matrix: np.ndarray) -> Sequence[Action]:
-        self._input = self._stack_inputs(openable_matrix, proximity_matrix)
+    def act(self, state: HiddenBoardState) -> Sequence[Action]:
+        self._input = self._stack_inputs(state.openable_layout, state.proximity_matrix)
         
         self.optimizer.zero_grad()
         self._output = self.net(input)
         
-
-    def react(self, openable_matrix: np.ndarray, proximity_matrix: np.ndarray, status):
-        new_input = self._stack_inputs(openable_matrix, proximity_matrix)
+        # TODO convert output to actions
+        
+        pass
+        
+    def react(self, state: HiddenBoardState, status):
+        new_input = self._stack_inputs(state.openable_layout, state.proximity_matrix)
         added = self._input[0] & ~new_input[0]
+        
+        # TODO create an appropriate target/loss from output
+        
         loss = nn.MSELoss(self._output.flatten(start_dim=1), self._stack_inputs())
         loss.backward()
         self.optimizer.step()

@@ -14,13 +14,13 @@ def start_game():
         agent.start(window._grid.size, config)
         
         # run simulation
-        for openable_layout, proximity_matrix, _ in (game_runner := window.run()):
-            agent_actions = agent.act(openable_layout, proximity_matrix)
+        for last_state, _ in (game_runner := window.run()):
+            agent_actions = agent.act(last_state)
             
-            openable_layout, proximity_matrix, status = game_runner.send(agent_actions)
+            last_state, status = game_runner.send(agent_actions)
             # TODO change yielding to 2-part
             if len(agent_actions) > 0:
-                agent.react(openable_layout, proximity_matrix, status)
+                agent.react(last_state, status)
     else:
         for _ in window.run():
             continue

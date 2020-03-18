@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
-import numpy as np
 
+from minesweeper.board import HiddenBoardState
 from minesweeper.actions import Action
 
 from typing import Sequence
@@ -30,24 +30,22 @@ class Agent(ABC):
         pass
     
     @abstractmethod
-    def act(self, openable_matrix: np.ndarray, proximity_matrix: np.ndarray) -> Sequence[Action]:
+    def act(self, state: HiddenBoardState) -> Sequence[Action]:
         """
         The agent acts on the game state and returns actions to take on the board.
         
-        :param openable_matrix: binary matrix with ones wherever a cell is not open, zeros elsewhere
-        :param proximity_matrix: for open cells, matrix representing the number of neighboring mines
+        :param state: latest (hidden) board state
         :return: sequence of actions to take on the board
         """
         pass
     
     @abstractmethod
-    def react(self, openable_matrix: np.ndarray, proximity_matrix: np.ndarray, status):
+    def react(self, state: HiddenBoardState, status):
         """
         The agent reacts to the result of their actions on the board based on the new board state (and any saved
         state) and the status indicators.
         
-        :param openable_matrix: binary matrix with ones wherever a cell is not open, zeros elsewhere
-        :param proximity_matrix: for open cells, matrix representing the number of neighboring mines
+        :param state: the latest (hidden) board state after executing the last requested actions
         :param status: status indicators for the game and board
         """
         pass

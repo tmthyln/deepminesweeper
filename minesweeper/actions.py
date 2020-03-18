@@ -10,7 +10,7 @@ class ActionType(Enum):
     SELECT = (1, True)
     FLAG = (2, True)
     CHORD = (3, True)
-    SUPERCHORD = (4, True)
+    SUPERCHORD = (4, False)
     SURRENDER = (5, False)
     
     def __repr__(self):
@@ -21,7 +21,7 @@ class ActionType(Enum):
         elif self is ActionType.CHORD:
             base = 'Chord starting with cell at'
         elif self is ActionType.SUPERCHORD:
-            base = 'Superchord starting with cell at'
+            base = 'Superchord the board'
         elif self is ActionType.SURRENDER:
             base = 'Surrender'
         else:
@@ -64,8 +64,8 @@ class Action(ABC):
         return cls(ActionType.CHORD, pos)
 
     @classmethod
-    def superchord(cls, pos: (int, int)):
-        return cls(ActionType.SUPERCHORD, pos)
+    def superchord(cls):
+        return cls(ActionType.SUPERCHORD)
     
     @classmethod
     def surrender(cls):

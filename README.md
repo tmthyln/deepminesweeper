@@ -14,8 +14,8 @@ Some usual features of the game:
 - you can 'flag' a cell to mark that you believe there's a mine underneath
 - by double-clicking an open cell (obviously without a mine in it), adjacent cells will be opened for you if the
  number of adjacent flags matches the number in the cell---this is called chording
- 
- TODO: add images for clarification
+
+TODO: add images for clarification
 
 ## Possible Learning Models
 - train an imitation learner that plays like a person
