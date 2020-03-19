@@ -1,13 +1,38 @@
 from collections import namedtuple, deque
+from dataclasses import dataclass, field
 
 import pygame
 
-from typing import Deque, Literal
+from typing import Deque, Literal, Any
 
 
 ################################################################################
-#                         Data Structures/Collections                          #
+#                    Data Structures/Collections/Containers                    #
 ################################################################################
+
+@dataclass
+class Transient:
+    obj: Any
+    time: int
+    fade: int = 0
+    timer: pygame.time.Clock = field(default_factory=lambda: pygame.time.Clock)
+        
+    def restart(self):
+        self.timer.tick()
+        return self
+
+    @property
+    def transience(self):
+        now = self.timer.tick
+        
+        if now > self.time + self.fade:
+            return 0.
+        elif now > self.time:
+            return (self.time + self.fade - now) / self.fade
+        else:
+            return 1.
+        
+
 
 class TimeMovingAverage:
     """

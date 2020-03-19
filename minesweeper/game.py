@@ -18,44 +18,73 @@ game_log = logutils.get_logger('game')
 
 
 class StatusBar:
+    height_per_line = 30
     
-    def __init__(self, screen: pygame.Surface, rect: pygame.Rect):
-        pass
+    def __init__(self, screen: pygame.Surface, rect: pygame.Rect, config):
+        self._screen = screen
+        self._rect = rect
+        self._config = config
+        
+        self._values = {None: ''}
+        self._font = pygame.font.Font(pygame.font.match_font('courier'), 14)
     
     def redraw(self) -> Sequence[pygame.Rect]:
         # redraw background
+        self._screen.fill(self._config.bg_color, rect=self._rect)
+
+        # render the main text
+        text = self._font.render(self._values[None], True, (255, 0, 0))
+        text_rect = text.get_rect()
+        text_rect.centery = self._rect.centery
+        text_rect.left = abs(self._rect.h - text_rect.h) // 2
         
-        pass
+        self._screen.blit(text, text_rect)
+        
+        return [self._rect]
     
-    pass
+    def update(self, val, key=None):
+        self._values[key] = val
+    
+    @classmethod
+    def get_preferred_rect(cls, available_space: pygame.Rect, lines: int):
+        status_rect = available_space.copy()
+        status_rect.h = cls.height_per_line * lines
+        status_rect.bottom = available_space.bottom
+        return status_rect
 
 
 class GameWindow:
     def __init__(self, config: Config.__class__):
         self.config: Config.__class__ = config
-        self._screen = None
-        self._board = None
-        self._grid = None
-        self._last_reward = None
 
         pygame.init()
         pygame.display.set_caption(config.window_title)
         pygame.display.set_icon(pygame.image.load(os.path.join(config.res_dir, config.favicon_file)))
         
-        self.resize(config.window_size)
-        self.new_game()
+        self._resize(config.window_size)
+        self._new_game()
 
-    def resize(self, new_size: (int, int) = None):
+    def _resize(self, new_size: (int, int) = None):
         if new_size is not None:
             self._screen = pygame.display.set_mode(new_size, flags=pygame.RESIZABLE)
     
         self._screen.fill(self.config.bg_color)
-        self._grid = SquareGrid(self._screen, self._screen.get_rect(), self.config)
-    
+        
+        # status bar
+        status_rect = StatusBar.get_preferred_rect(self._screen.get_rect(), 1)
+        self._status_bar = StatusBar(self._screen, status_rect, self.config)
+        self._status_bar.redraw()
+        
+        # grid
+        grid_rect = self._screen.get_rect()
+        grid_rect.h -= status_rect.h
+        grid_rect.top = self._screen.get_rect().top
+        self._grid = SquareGrid(self._screen, grid_rect, self.config)
         self._grid.redraw(force=True)
+        
         pygame.display.update()
         
-    def new_game(self):
+    def _new_game(self):
         self._board = SquareBoard(self._grid, uniform_random(0.2), self.config)
         self._last_reward = 0.
         self._grid.redraw(force=True)
@@ -101,8 +130,8 @@ class GameWindow:
                     add_action(Action.select(pos) if self.config.click_to_flag else Action.flag(pos))
                 elif event.type == VIDEORESIZE:
                     game_log.debug(f'window resized')
-                    self.resize(new_size=(event.w, event.h))
-                    self.new_game()
+                    self._resize(new_size=(event.w, event.h))
+                    self._new_game()
                 elif event.type == KEYUP:
                     if event.key == K_q:
                         add_action(Action.surrender())
@@ -145,8 +174,10 @@ class GameWindow:
             if len(actions) > 0:
                 if self._board.completed:
                     game_log.info('GAME COMPLETED.')
-                elif self._board.failed and self._board.open_mines > self.config.forgiveness:
+                    self._status_bar.update('Game completed.')
+                elif self._board.failed:
                     game_log.info('GAME FAILED.')
+                    self._status_bar.update('Game failed.')
                 
             if self._board.completed or self._board.failed:
                 logutils.save_board(f'game_user_{games_finished}.npz',
@@ -154,12 +185,14 @@ class GameWindow:
                                     self._board.open_layout,
                                     self._board.flag_layout)
                 games_finished += 1
-                self.new_game()
+                self._new_game()
             
             # TODO determine feedback
 
             # update screen
-            updated_rects = self._grid.redraw()
+            updated_rects = []
+            updated_rects.extend(self._grid.redraw())
+            updated_rects.extend(self._status_bar.redraw())
             pygame.display.update(updated_rects)
         
             # calculate processing time and amount of delay needed for desired framerate
