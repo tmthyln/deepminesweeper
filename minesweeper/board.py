@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from abc import abstractmethod, ABC
+from typing import Sequence
+
 import numpy as np
+import pygame
 
 
 def neighbors(mines: np.ndarray) -> np.ndarray:
@@ -12,6 +15,26 @@ def neighbors(mines: np.ndarray) -> np.ndarray:
                            mode='same', boundary='fill')
     
     return neighbors * (1 - mines) - mines
+
+
+class OnScreen(ABC):
+    
+    @abstractmethod
+    def realign(self, screen: pygame.Surface, rect: pygame.Rect):
+        pass
+    
+    @abstractmethod
+    def resize(self, screen: pygame.Surface, rect: pygame.Rect):
+        pass
+    
+    @property
+    @abstractmethod
+    def rect(self):
+        pass
+    
+    @abstractmethod
+    def redraw(self) -> Sequence[pygame.Rect]:
+        pass
 
 
 class Grid(ABC):
@@ -31,11 +54,7 @@ class Grid(ABC):
     ############################################################################
     #                            Grid-Wide Changes                             #
     ############################################################################
-    
-    @abstractmethod
-    def resize(self):
-        pass
-    
+
     @abstractmethod
     def refill(self, proximity, open_layout=None):
         pass
@@ -64,16 +83,13 @@ class Grid(ABC):
     @abstractmethod
     def is_open(self, pos):
         pass
-    
-    ############################################################################
-    #                                 Graphics                                 #
-    ############################################################################
-    
-    def redraw(self):
-        pass
 
 
 class Board(ABC):
+    
+    @abstractmethod
+    def first_select(self, pos):
+        pass
     
     @abstractmethod
     def select(self, pos, propagate=True):
@@ -165,7 +181,8 @@ class HiddenBoardState:
     last_state_stored = None
     
     def __post_init__(self):
-        self.last_state = HiddenBoardState.last_state_stored  # TODO may be a bad idea if different threads of creation
+        # self.last_state = HiddenBoardState.last_state_stored  # TODO may be a bad idea if different threads of
+        #  creation
         HiddenBoardState.last_state_stored = self
 
 

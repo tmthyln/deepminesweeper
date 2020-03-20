@@ -21,33 +21,10 @@ class SquareGrid(Grid):
     def __init__(self, screen: pygame.Surface, available_rect: pygame.Rect, config):
         # save parameters and pre-load assets/resources
         self._screen = screen
-        self._available_rect = available_rect
         self._config = config
         self._load_cells()
-        
-        self._changelist = []
 
-        cell_x, cell_y = self.cell_size
-        
-        # calculate used area of available screen real estate
-        self._size = grid_size = available_rect.width // cell_x, \
-                                 available_rect.height // cell_y
-        grid_screen_size = grid_size[0] * cell_x, grid_size[1] * cell_y
-        self._used_rect = Rect((0, 0), grid_screen_size)
-        self._used_rect.center = available_rect.center
-
-        ref_x, ref_y = self._used_rect.topleft
-        
-        # initialize all board state arrays
-        self.flags = np.zeros(grid_size, dtype=bool)
-        self.open = np.zeros(grid_size, dtype=bool)
-        self._proximity = np.zeros(grid_size, dtype=np.int8)
-        self._subrects = np.empty(grid_size, dtype=pygame.Rect)
-        for x, y in np.ndindex(grid_size):
-            self._subrects[x, y] = Rect(ref_x + x * cell_x, ref_y + y * cell_y, cell_x, cell_y)
-        
-        # force an initial draw of the grid
-        self._changelist.extend(np.ndindex(self._size))
+        self.resize(screen, available_rect)
     
     def _load_cells(self):
         from pygame.transform import smoothscale
@@ -102,8 +79,46 @@ class SquareGrid(Grid):
     #                            Grid-Wide Changes                             #
     ############################################################################
     
-    def resize(self):
-        pass
+    def realign(self, screen, available_rect: Rect):
+        self._screen = screen
+        self._available_rect = available_rect
+        self._used_rect.center = available_rect.center
+
+        ref_x, ref_y = self._used_rect.topleft
+        cell_x, cell_y = self.cell_size
+        
+        for x, y in np.ndindex(self._size):
+            self._subrects[x, y] = Rect(ref_x + x * cell_x, ref_y + y * cell_y, cell_x, cell_y)
+
+        self._changelist.extend(np.ndindex(self._size))
+    
+    def resize(self, screen, available_rect: Rect):
+        self._screen = screen
+        self._available_rect = available_rect
+        
+        self._changelist = []
+
+        cell_x, cell_y = self.cell_size
+    
+        # calculate used area of available screen real estate
+        self._size = grid_size = available_rect.w // cell_x, \
+                                 available_rect.h // cell_y
+        grid_screen_size = grid_size[0] * cell_x, grid_size[1] * cell_y
+        self._used_rect = Rect((0, 0), grid_screen_size)
+        self._used_rect.center = available_rect.center
+    
+        ref_x, ref_y = self._used_rect.topleft
+    
+        # initialize all board state arrays
+        self.flags = np.zeros(grid_size, dtype=bool)
+        self.open = np.zeros(grid_size, dtype=bool)
+        self._proximity = np.zeros(grid_size, dtype=np.int8)
+        self._subrects = np.empty(grid_size, dtype=pygame.Rect)
+        for x, y in np.ndindex(grid_size):
+            self._subrects[x, y] = Rect(ref_x + x * cell_x, ref_y + y * cell_y, cell_x, cell_y)
+    
+        # force an initial draw of the grid
+        self._changelist.extend(np.ndindex(self._size))
     
     def refill(self, proximity: np.ndarray, open_layout: np.ndarray = None):
         assert proximity.shape == self._proximity.shape
@@ -149,25 +164,37 @@ class SquareGrid(Grid):
             return self._flag_image if self.flags[pos] else self._hidden_image
     
     def redraw(self):
-        for pos in self._changelist:
-            self._screen.blit(self._cell_image(pos), self._subrects[pos])
+        if len(self._changelist) > 0:
+            for pos in self._changelist:
+                self._screen.blit(self._cell_image(pos), self._subrects[pos])
         
-        updated_rectangles = [self._subrects[pos] for pos in set(self._changelist)]
+        updated_rectangles = [self._subrects[pos] for pos in self._changelist]
         self._changelist = []
         return updated_rectangles
 
 
 @register_board('square', SquareGrid)
 class SquareBoard(Board):
-    
+
     def __init__(self, grid: SquareGrid, seeder: Seeder, config, open_layout: np.ndarray = None):
         self._grid = grid
         self._seeder = seeder
         self._config = config
+        
         self._mine_layout = seeder(grid.size)
         self._proximity = SquareBoard.add_neighbors(self._mine_layout)
         
         self._grid.refill(self._proximity, open_layout)
+    
+    def first_select(self, pos):
+        self._mine_layout[pos] = False
+        for adj_pos in self._adjacents(*pos):
+            self._mine_layout[adj_pos] = False
+            
+        self._proximity = SquareBoard.add_neighbors(self._mine_layout)
+        self._grid.refill(self._proximity)
+        # FIXME: when clicking on edge, two sides are opened
+        self.select(pos)
     
     def select(self, pos, propagate=True):
         if propagate and self._proximity[pos] == 0:

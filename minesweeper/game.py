@@ -10,7 +10,7 @@ import pygame
 from pygame.locals import *
 
 import minesweeper.logutils as logutils
-from board import HiddenBoardState
+from board import HiddenBoardState, OnScreen
 from config import Config
 from minesweeper.actions import Action, ActionType
 from minesweeper.boards import SquareBoard, SquareGrid
@@ -28,7 +28,8 @@ def secondary_clicked(event: pygame.event.Event):
     return event.type == MOUSEBUTTONUP and event.button == 3
 
 
-class StatusBar:
+class StatusBar(OnScreen):
+
     height_per_line = 30
     
     def __init__(self, screen: pygame.Surface, rect: pygame.Rect, config):
@@ -40,6 +41,14 @@ class StatusBar:
         self._font = pygame.font.Font(pygame.font.match_font('courier'), 14)
         
         self.redraw()
+    
+    def realign(self, screen, rect):
+        self._screen = screen
+        self._rect = rect
+    
+    def resize(self, screen, rect):
+        self._screen = screen
+        self._rect = rect
     
     def redraw(self) -> Sequence[pygame.Rect]:
         # redraw background
@@ -57,6 +66,10 @@ class StatusBar:
     
     def update(self, val, key=None):
         self._values[key] = val
+
+    @property
+    def rect(self):
+        return self._rect
     
     @classmethod
     def get_preferred_rect(cls, available_space: pygame.Rect, lines: int):
@@ -74,25 +87,50 @@ class GameWindow:
         pygame.init()
         pygame.display.set_caption(self.config.window_title)
         pygame.display.set_icon(pygame.image.load(os.path.join(self.config.res_dir, self.config.favicon_file)))
-        
-        self._resize(self.config.window_size)
 
-    def _resize(self, new_size: (int, int)):
+        self.screen = pygame.display.set_mode(self.config.window_size, flags=pygame.RESIZABLE)
+
+        self.screen.fill(self.config.bg_color)
+
+        # status bar
+        status_rect = StatusBar.get_preferred_rect(self.screen.get_rect(), 1)
+        self.status_bar = StatusBar(self.screen, status_rect, self.config)
+
+        # grid
+        grid_rect = self.screen.get_rect().copy()
+        grid_rect.h -= status_rect.h
+        grid_rect.top = self.screen.get_rect().top
+        self.grid = SquareGrid(self.screen, grid_rect, self.config)
+
+    def realign(self, new_size: (int, int)):
         self.screen = pygame.display.set_mode(new_size, flags=pygame.RESIZABLE)
     
         self.screen.fill(self.config.bg_color)
     
         # status bar
         status_rect = StatusBar.get_preferred_rect(self.screen.get_rect(), 1)
-        self.status_bar = StatusBar(self.screen, status_rect, self.config)
+        self.status_bar.realign(self.screen, status_rect)
     
         # grid
         grid_rect = self.screen.get_rect().copy()
         grid_rect.h -= status_rect.h
         grid_rect.top = self.screen.get_rect().top
-        self.grid = SquareGrid(self.screen, grid_rect, self.config)
-        
-        pygame.display.update()
+        self.grid.realign(self.screen, grid_rect)
+
+    def resize(self, new_size: (int, int)):
+        self.screen = pygame.display.set_mode(new_size, flags=pygame.RESIZABLE)
+    
+        self.screen.fill(self.config.bg_color)
+    
+        # status bar
+        status_rect = StatusBar.get_preferred_rect(self.screen.get_rect(), 1)
+        self.status_bar.resize(self.screen, status_rect)
+    
+        # grid
+        grid_rect = self.screen.get_rect().copy()
+        grid_rect.h -= status_rect.h
+        grid_rect.top = self.screen.get_rect().top
+        self.grid.resize(self.screen, grid_rect)
         
     def redraw(self):
         updated_rects = []
@@ -118,7 +156,7 @@ class GameWindow:
                 yield event
             elif event.type == VIDEORESIZE:
                 game_log.debug(f'window resized')
-                self._resize(new_size=(event.w, event.h))
+                self.realign(new_size=(event.w, event.h))
                 yield event
             else:
                 yield event
@@ -169,9 +207,14 @@ class Game:
             return self._playing
 
     def _first_select(self, *args):
+        for event in self.game_window.events():
+            if primary_clicked(event) or secondary_clicked(event):
+                self.board.first_select(self.game_window.grid.pos_of(event.pos))
+                
+                game_log.debug('Changing state: first_select --> playing')
+                return self._playing
         
-        game_log.debug('Changing state: first_select --> playing')
-        return self._playing
+        return self._first_select
 
     def _playing(self, actions, *args):
         add_action = actions.append
@@ -192,8 +235,6 @@ class Game:
                     add_action(Action.surrender())
                 if self.config.superchord == 'keyup':
                     add_action(Action.superchord())
-            elif event.type == VIDEORESIZE:
-                return self._new_game
     
         if self.config.superchord == 'auto' and len(actions) > 0:
             add_action(Action.superchord())
@@ -242,6 +283,9 @@ class Game:
         game_log.debug('Changing state: game_end --> new_game')
         return self._new_game
 
+    def _game_pause(self, *args):
+        CountDown(5_000)
+
     ############################################################################
     #                                Game Loop                                 #
     ############################################################################
@@ -265,6 +309,7 @@ class Game:
         while True:
             self.curr_state = self.curr_state(agent_actions)
             self.game_window.redraw()
+            #pygame.display.update()
             
             if self.playing:
                 masked_proximity = self.board.proximity_matrix.copy()
