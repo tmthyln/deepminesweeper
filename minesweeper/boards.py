@@ -24,6 +24,8 @@ class SquareGrid(Grid):
         self._available_rect = available_rect
         self._config = config
         self._load_cells()
+        
+        self._changelist = []
 
         cell_x, cell_y = self.cell_size
         
@@ -45,8 +47,7 @@ class SquareGrid(Grid):
             self._subrects[x, y] = Rect(ref_x + x * cell_x, ref_y + y * cell_y, cell_x, cell_y)
         
         # force an initial draw of the grid
-        self._changelist = []
-        self.redraw(force=True)
+        self._changelist.extend(np.ndindex(self._size))
     
     def _load_cells(self):
         from pygame.transform import smoothscale
@@ -109,12 +110,13 @@ class SquareGrid(Grid):
         
         self._proximity = proximity
         
-        self.flags[...] = False
-        self.open[...] = False
+        self.flags.fill(False)
+        
+        self.open.fill(False)
         if open_layout is not None:
             self.open[open_layout] = True
         
-        self.redraw(force=True)
+        self._changelist.extend(np.ndindex(self._size))
     
     def shift(self, dx, dy):
         pass
@@ -146,11 +148,11 @@ class SquareGrid(Grid):
         else:
             return self._flag_image if self.flags[pos] else self._hidden_image
     
-    def redraw(self, force=False):
-        for pos in (np.ndindex(self.size) if force else self._changelist):
+    def redraw(self):
+        for pos in self._changelist:
             self._screen.blit(self._cell_image(pos), self._subrects[pos])
         
-        updated_rectangles = [self._used_rect] if force else [self._subrects[pos] for pos in self._changelist]
+        updated_rectangles = [self._subrects[pos] for pos in set(self._changelist)]
         self._changelist = []
         return updated_rectangles
 

@@ -1,20 +1,20 @@
 import minesweeper
-from minesweeper.game import GameWindow
-from minesweeper.config import DefaultConfig
+from minesweeper.game import GameWindow, Game
+from minesweeper.config import Config
 
 
 def start_game():
-    config = DefaultConfig
+    config = Config
     config.update_from_args()
     
-    window = GameWindow(config)
+    game = Game(config)
     
     if config.agent:
         agent = minesweeper.AGENT_REGISTRY[config.agent]()
-        agent.start(window._grid.size, config)
+        agent.start(game.game_window.grid.size, config)
         
         # run simulation
-        for last_state, _ in (game_runner := window.run()):
+        for last_state, _ in (game_runner := game.run()):
             agent_actions = agent.act(last_state)
             
             last_state, status = game_runner.send(agent_actions)
@@ -22,7 +22,7 @@ def start_game():
             if len(agent_actions) > 0:
                 agent.react(last_state, status)
     else:
-        for _ in window.run():
+        for _ in game.run():
             continue
 
 

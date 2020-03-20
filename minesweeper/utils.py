@@ -1,6 +1,6 @@
 from collections import namedtuple, deque
 from dataclasses import dataclass, field
-
+from time import time as current_time_sec
 import pygame
 
 from typing import Deque, Literal, Any
@@ -32,7 +32,6 @@ class Transient:
         else:
             return 1.
         
-
 
 class TimeMovingAverage:
     """
@@ -164,6 +163,16 @@ class Delayer:
         """
         
         return self._ticks.average
+
+
+class CountDown:
+    __slots__ = ['_end_time']
+    
+    def __init__(self, time_ms):
+        self._end_time = current_time_sec() + time_ms / 1_000
+    
+    def over(self):
+        return current_time_sec() > self._end_time
 
 
 class TickRepeater:

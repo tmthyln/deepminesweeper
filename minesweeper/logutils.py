@@ -10,7 +10,7 @@ def config():
 def get_logger(name):
     config()
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)  # TODO make this dependent on config
+    logger.setLevel(logging.DEBUG)  # TODO make this dependent on config
     return logger
 
 

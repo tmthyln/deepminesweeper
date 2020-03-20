@@ -145,12 +145,8 @@ class ConfigMeta(type):
 
 
 class Config(metaclass=ConfigMeta):
-    pass  # TODO make all class attributes accessible (and dir-able) in the instance
+    # TODO allow dicts or values to be assigned to the config (converted to ConfigItem's)
 
-# TODO allow dicts or values to be assigned to the config (converted to ConfigItem's)
-
-
-class DefaultConfig(Config):
     with Group('resources'):
         res_dir = ConfigItem(
                 default='res',

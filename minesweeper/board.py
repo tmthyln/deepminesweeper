@@ -69,7 +69,7 @@ class Grid(ABC):
     #                                 Graphics                                 #
     ############################################################################
     
-    def redraw(self, force=False):
+    def redraw(self):
         pass
 
 
