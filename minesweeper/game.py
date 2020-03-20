@@ -212,8 +212,6 @@ class Game:
                 self.board.chord(action.pos)
             elif action.type == ActionType.SUPERCHORD:
                 self.board.superchord()
-            elif action.type == ActionType.SURRENDER:
-                pass
             else:
                 game_log.warning(f'Unknown action: {action}, skipping processing')
     
@@ -296,3 +294,4 @@ class Game:
 
         return valid_dbl_click
         # TODO: maybe implement a multi-click feature
+
