@@ -186,11 +186,7 @@ class Game:
         self.curr_state = self._new_game
         self.games_finished = 0
         self.games_completed = 0
-    
-    @property
-    def playing(self):
-        return self.curr_state in [self._first_select, self._playing]
-    
+
     ############################################################################
     #                             State Functions                              #
     ############################################################################
@@ -198,6 +194,10 @@ class Game:
     def _new_game(self, *args):
         self.board = SquareBoard(self.game_window.grid, uniform_random(0.2), self.config)
         self._last_reward = 0.
+        
+        self.game_window.status_bar.update('')
+        
+        yield
         
         if self.config.good_first_select:
             game_log.debug('Changing state: new_game --> first_select')
@@ -207,62 +207,73 @@ class Game:
             return self._playing
 
     def _first_select(self, *args):
-        for event in self.game_window.events():
-            if primary_clicked(event) or secondary_clicked(event):
-                self.board.first_select(self.game_window.grid.pos_of(event.pos))
-                
-                game_log.debug('Changing state: first_select --> playing')
-                return self._playing
-        
-        return self._first_select
+        while True:
+            for event in self.game_window.events():
+                if primary_clicked(event) or secondary_clicked(event):
+                    self.board.first_select(self.game_window.grid.pos_of(event.pos))
+                    game_log.debug('Changing state: first_select --> playing')
+                    return self._playing
+            
+            yield
 
-    def _playing(self, actions, *args):
-        add_action = actions.append
-        cell_pos = self.game_window.grid.pos_of
-    
-        # handle user events
-        for event in self.game_window.events():
-            if self._primary_double_clicked(event):  # TODO: add back in intersection checks
-                add_action(Action.chord(cell_pos(event.pos)))
-            elif primary_clicked(event):
-                pos = cell_pos(event.pos)
-                add_action(Action.flag(pos) if self.config.click_to_flag else Action.select(pos))
-            elif secondary_clicked(event):
-                pos = cell_pos(event.pos)
-                add_action(Action.select(pos) if self.config.click_to_flag else Action.flag(pos))
-            elif event.type == KEYUP:
-                if event.key == K_q:
-                    add_action(Action.surrender())
-                if self.config.superchord == 'keyup':
-                    add_action(Action.superchord())
-    
-        if self.config.superchord == 'auto' and len(actions) > 0:
-            add_action(Action.superchord())
-
-        if any(map(lambda a: a.type == ActionType.SURRENDER, actions)):
-            game_log.debug('Changing state: playing --> game_end')
-            return self._game_end
-    
-        # process all actions and determine next reward
-        for action in actions:
-            if action.type == ActionType.SELECT:
-                self.board.select(action.pos)
-            elif action.type == ActionType.FLAG:
-                self.board.toggle_flag(action.pos)
-            elif action.type == ActionType.CHORD:
-                self.board.chord(action.pos)
-            elif action.type == ActionType.SUPERCHORD:
-                self.board.superchord()
-            else:
-                game_log.warning(f'Unknown action: {action}, skipping processing')
-    
-        # TODO determine feedback
+    def _playing(self, *args):
+        while True:
+            actions = []
+            add_action = actions.append
+            cell_pos = self.game_window.grid.pos_of
         
-        if self.board.failed or self.board.completed:
-            game_log.debug('Changing state: playing --> game_end')
-            return self._game_end
-        else:
-            return self._playing
+            # handle user events
+            for event in self.game_window.events():
+                if self._primary_double_clicked(event):  # TODO: add back in intersection checks
+                    add_action(Action.chord(cell_pos(event.pos)))
+                elif primary_clicked(event):
+                    pos = cell_pos(event.pos)
+                    add_action(Action.flag(pos) if self.config.click_to_flag else Action.select(pos))
+                elif secondary_clicked(event):
+                    pos = cell_pos(event.pos)
+                    add_action(Action.select(pos) if self.config.click_to_flag else Action.flag(pos))
+                elif event.type == KEYUP:
+                    if event.key == K_q:
+                        add_action(Action.surrender())
+                    if self.config.superchord == 'keyup':
+                        add_action(Action.superchord())
+        
+            if self.config.superchord == 'auto' and len(actions) > 0:
+                add_action(Action.superchord())
+
+            masked_proximity = self.board.proximity_matrix.copy()
+            masked_proximity[~self.board.open_layout] = 0
+            next_board_state = HiddenBoardState(
+                    openable_layout=~self.board.open_layout & ~self.board.flag_layout,
+                    flag_layout=self.board.flag_layout,
+                    proximity_matrix=masked_proximity)
+            
+            agent_actions = (yield next_board_state, self._last_reward)  # TODO change reward to status
+            if agent_actions is not None:
+                actions.extend(agent_actions)
+    
+            if any(map(lambda a: a.type == ActionType.SURRENDER, actions)):
+                game_log.debug('Changing state: playing --> game_end')
+                return self._game_end
+        
+            # process all actions and determine next reward
+            for action in actions:
+                if action.type == ActionType.SELECT:
+                    self.board.select(action.pos)
+                elif action.type == ActionType.FLAG:
+                    self.board.toggle_flag(action.pos)
+                elif action.type == ActionType.CHORD:
+                    self.board.chord(action.pos)
+                elif action.type == ActionType.SUPERCHORD:
+                    self.board.superchord()
+                else:
+                    game_log.warning(f'Unknown action: {action}, skipping processing')
+        
+            # TODO determine feedback
+            
+            if self.board.failed or self.board.completed:
+                game_log.debug('Changing state: playing --> game_end')
+                return self._game_end
     
     def _game_end(self, *args):
         if self.board.completed:
@@ -280,17 +291,19 @@ class Game:
                             self.board.flag_layout)
         self.games_finished += 1
         
-        game_log.debug('Changing state: game_end --> new_game')
-        return self._new_game
-
-    def _game_pause(self, *args):
-        CountDown(5_000)
+        while True:
+            for event in self.game_window.events():
+                if event.type == KEYDOWN or event.type == MOUSEBUTTONUP:
+                    game_log.debug('Changing state: game_end --> new_game')
+                    return self._new_game
+            
+            yield
 
     ############################################################################
     #                                Game Loop                                 #
     ############################################################################
     
-    def run(self):
+    def run(self, agent=None):
         tick_clock = Delayer(initial_fps=self.config.fps)
         
         # TODO automake directory (maybe put into logutils)
@@ -300,30 +313,30 @@ class Game:
             match = save_filename_pattern.match(filename)
             self.games_finished = max(self.games_finished, int(match[1]))
         self.games_finished += 1
+
+        if agent:
+            agent.start(self.game_window.grid.size, self.config)
         
-        agent_actions = []
         self.game_window.redraw()
-        
+
+        game_log.info('Starting the Minesweeper game.')
         tick_clock.tick_start()
         
         while True:
-            self.curr_state = self.curr_state(agent_actions)
-            self.game_window.redraw()
-            #pygame.display.update()
-            
-            if self.playing:
-                masked_proximity = self.board.proximity_matrix.copy()
-                masked_proximity[~self.board.open_layout] = 0
-                next_board_state = HiddenBoardState(
-                        openable_layout=~self.board.open_layout & ~self.board.flag_layout,
-                        flag_layout=self.board.flag_layout,
-                        proximity_matrix=masked_proximity)
-    
-                next_input = (yield next_board_state, self._last_reward)
-                agent_actions = next_input if next_input is not None else []  # TODO change reward to a status
-                
-            # calculate processing time and amount of delay needed for desired framerate
-            tick_clock.tick_delay()
+            state_generator = self.curr_state()
+            try:
+                while True:
+                    next_value = next(state_generator)
+                    if agent and next_value is not None:
+                        agent_actions = agent.act(next_value[0])
+                        if len(agent_actions) > 0:
+                            reactive_state_status = state_generator.send(agent_actions)
+                            agent.react(*reactive_state_status)
+                    
+                    self.game_window.redraw()
+                    tick_clock.tick_delay()
+            except StopIteration as e:
+                self.curr_state = e.value
 
     # noinspection PyDefaultArgument
     def _primary_double_clicked(self, event: pygame.event.Event,
