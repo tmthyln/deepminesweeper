@@ -54,13 +54,20 @@ class StatusBar(OnScreen):
         # redraw background
         self._screen.fill(self._config.bg_color, rect=self._rect)
 
-        # render the main text
-        text = self._font.render(self._values[None], True, (255, 0, 0))
-        text_rect = text.get_rect()
-        text_rect.centery = self._rect.centery
-        text_rect.left = abs(self._rect.h - text_rect.h) // 2
+        def render_status(text, left):
+            text = self._font.render(text, True, (255, 0, 0))
+            text_rect = text.get_rect()
+            text_rect.centery = self._rect.centery
+            text_rect.left = self._rect.left + left + abs(self._rect.h - text_rect.h) // 2
+            self._screen.blit(text, text_rect)
         
-        self._screen.blit(text, text_rect)
+        # render main text
+        render_status(self._values[None], 0)
+        
+        # render auxiliary statuses
+        others = [val for key, val in self._values.items() if key is not None]
+        for i, other_text in enumerate(others):
+            render_status(other_text, self._rect.w // 3 + i * self._rect.w // len(others))
         
         return [self._rect]
     
@@ -91,6 +98,7 @@ class GameWindow:
         self.screen = pygame.display.set_mode(self.config.window_size, flags=pygame.RESIZABLE)
 
         self.screen.fill(self.config.bg_color)
+        pygame.display.update()
 
         # status bar
         status_rect = StatusBar.get_preferred_rect(self.screen.get_rect(), 1)
@@ -106,6 +114,7 @@ class GameWindow:
         self.screen = pygame.display.set_mode(new_size, flags=pygame.RESIZABLE)
     
         self.screen.fill(self.config.bg_color)
+        pygame.display.update()
     
         # status bar
         status_rect = StatusBar.get_preferred_rect(self.screen.get_rect(), 1)
@@ -276,12 +285,17 @@ class Game:
                 return self._game_end
     
     def _game_end(self, *args):
+        self.games_finished += 1
+        
         if self.board.completed:
+            self.games_completed += 1
             game_log.info('GAME COMPLETED.')
             self.game_window.status_bar.update('Game completed.')
         elif self.board.failed:
             game_log.info('GAME FAILED.')
             self.game_window.status_bar.update('Game failed.')
+
+        self.game_window.status_bar.update(f'{self.games_completed} games won of {self.games_finished}', key='wins')
 
         # TODO add game end callbacks/hooks
         
@@ -289,7 +303,7 @@ class Game:
                             self.board.mine_layout,
                             self.board.open_layout,
                             self.board.flag_layout)
-        self.games_finished += 1
+        
         
         while True:
             for event in self.game_window.events():
