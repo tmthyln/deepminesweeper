@@ -1,9 +1,23 @@
 from dataclasses import dataclass
 from abc import abstractmethod, ABC
+from functools import cached_property
 from typing import Sequence
 
 import numpy as np
 import pygame
+
+
+def adjacents(pos, size):
+    x, y = pos
+    return filter(lambda pos: 0 <= pos[0] < size[0] and 0 <= pos[1] < size[1],
+                  [(x + 1, y),
+                   (x + 1, y + 1),
+                   (x, y + 1),
+                   (x - 1, y + 1),
+                   (x - 1, y),
+                   (x - 1, y - 1),
+                   (x, y - 1),
+                   (x + 1, y - 1)])
 
 
 def neighbors(mines: np.ndarray) -> np.ndarray:
@@ -173,9 +187,9 @@ class Board(ABC):
 
 @dataclass
 class HiddenBoardState:
-    openable_layout: np.ndarray
-    flag_layout: np.ndarray
-    proximity_matrix: np.ndarray
+    openable: np.ndarray
+    flagged: np.ndarray
+    proximity: np.ndarray
     last_state: 'HiddenBoardState' = None
     
     last_state_stored = None
@@ -184,6 +198,14 @@ class HiddenBoardState:
         # self.last_state = HiddenBoardState.last_state_stored  # TODO may be a bad idea if different threads of
         #  creation
         HiddenBoardState.last_state_stored = self
+
+    @cached_property
+    def size(self):
+        return self.proximity.shape
+
+    @cached_property
+    def open(self):
+        return ~self.openable & ~self.flagged
 
 
 @dataclass

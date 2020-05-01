@@ -8,7 +8,7 @@ from pygame import Rect
 from scipy.signal import convolve2d
 
 from minesweeper import register_board
-from minesweeper.board import Board, Grid
+from minesweeper.board import Board, Grid, adjacents
 from minesweeper.seeders import Seeder
 
 
@@ -188,7 +188,7 @@ class SquareBoard(Board):
     
     def first_select(self, pos):
         self._mine_layout[pos] = False
-        for adj_pos in self._adjacents(*pos):
+        for adj_pos in self.adjacents(*pos):
             self._mine_layout[adj_pos] = False
             
         self._proximity = SquareBoard.add_neighbors(self._mine_layout)
@@ -204,7 +204,7 @@ class SquareBoard(Board):
                 next_empty = candidates.popleft()
                 
                 if self._proximity[next_empty] == 0 and not self._grid.is_open(next_empty):
-                    for adj_cell in self._adjacents(*next_empty):
+                    for adj_cell in self.adjacents(*next_empty):
                         candidates.append(adj_cell)
                 
                 self._grid.select(next_empty)
@@ -219,12 +219,12 @@ class SquareBoard(Board):
             return
         
         flagged_cells = 0
-        for adj_pos in self._adjacents(*pos):
+        for adj_pos in self.adjacents(*pos):
             if self._grid.is_flagged(adj_pos) or (self._grid.is_open(adj_pos) and self._mine_layout[adj_pos]):
                 flagged_cells += 1
         
         if flagged_cells == self._proximity[pos]:
-            for adj_pos in self._adjacents(*pos):
+            for adj_pos in self.adjacents(*pos):
                 self.select(adj_pos)
     
     def superchord(self):
@@ -291,6 +291,10 @@ class SquareBoard(Board):
         return np.sum(self.mine_layout).item()
     
     @property
+    def cells(self) -> int:
+        return self._proximity.size
+    
+    @property
     def open_mines(self) -> int:
         return np.sum(self.mine_layout & self.open_layout).item()
     
@@ -309,16 +313,8 @@ class SquareBoard(Board):
     def failed(self) -> bool:
         return self.open_mines > self._config.forgiveness
     
-    def _adjacents(self, x, y):
-        return filter(lambda pos: 0 <= pos[0] < self._grid.size[0] and 0 <= pos[1] < self._grid.size[1],
-                      [(x + 1, y),
-                       (x + 1, y + 1),
-                       (x, y + 1),
-                       (x - 1, y + 1),
-                       (x - 1, y),
-                       (x - 1, y - 1),
-                       (x, y - 1),
-                       (x + 1, y - 1)])
+    def adjacents(self, x, y):
+        return adjacents((x, y), self._grid.size)
     
     @staticmethod
     def add_neighbors(mines: np.ndarray) -> np.ndarray:

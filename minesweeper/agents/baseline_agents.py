@@ -27,7 +27,7 @@ class RandomAgent(Agent):
         self._ticker = TickRepeater(1000, 2000, time_based=True)
     
     def act(self, state: HiddenBoardState) -> Sequence[Action]:
-        possible_coords = np.argwhere(state.openable_layout)
+        possible_coords = np.argwhere(state.openable)
         
         if possible_coords.size > 0 and self._ticker.tick():
             index = tuple(possible_coords[random.randint(0, len(possible_coords) - 1)])

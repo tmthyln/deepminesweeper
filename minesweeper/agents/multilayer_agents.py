@@ -42,7 +42,7 @@ class LearnableConvolutionalAgent(Agent):
         pass
 
     def act(self, state: HiddenBoardState) -> Sequence[Action]:
-        self._input = self._stack_inputs(state.openable_layout, state.proximity_matrix)
+        self._input = self._stack_inputs(state.openable, state.proximity)
         
         self.optimizer.zero_grad()
         self._output = self.net(input)
@@ -52,7 +52,7 @@ class LearnableConvolutionalAgent(Agent):
         pass
         
     def react(self, state: HiddenBoardState, status):
-        new_input = self._stack_inputs(state.openable_layout, state.proximity_matrix)
+        new_input = self._stack_inputs(state.openable, state.proximity)
         added = self._input[0] & ~new_input[0]
         
         # TODO create an appropriate target/loss from output

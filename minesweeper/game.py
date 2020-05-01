@@ -10,8 +10,9 @@ import pygame
 from pygame.locals import *
 
 import minesweeper.logutils as logutils
-from board import HiddenBoardState, OnScreen
-from config import Config
+from minesweeper.board import HiddenBoardState
+from minesweeper.config import Config
+from minesweeper.elements import StatusBar
 from minesweeper.actions import Action, ActionType
 from minesweeper.boards import SquareBoard, SquareGrid
 from minesweeper.seeders import uniform_random
@@ -26,64 +27,6 @@ def primary_clicked(event: pygame.event.Event):
 
 def secondary_clicked(event: pygame.event.Event):
     return event.type == MOUSEBUTTONUP and event.button == 3
-
-
-class StatusBar(OnScreen):
-
-    height_per_line = 30
-    
-    def __init__(self, screen: pygame.Surface, rect: pygame.Rect, config):
-        self._screen = screen
-        self._rect = rect
-        self._config = config
-        
-        self._values = {None: ''}
-        self._font = pygame.font.Font(pygame.font.match_font('courier'), 14)
-        
-        self.redraw()
-    
-    def realign(self, screen, rect):
-        self._screen = screen
-        self._rect = rect
-    
-    def resize(self, screen, rect):
-        self._screen = screen
-        self._rect = rect
-    
-    def redraw(self) -> Sequence[pygame.Rect]:
-        # redraw background
-        self._screen.fill(self._config.bg_color, rect=self._rect)
-
-        def render_status(text, left):
-            text = self._font.render(text, True, (255, 0, 0))
-            text_rect = text.get_rect()
-            text_rect.centery = self._rect.centery
-            text_rect.left = self._rect.left + left + abs(self._rect.h - text_rect.h) // 2
-            self._screen.blit(text, text_rect)
-        
-        # render main text
-        render_status(self._values[None], 0)
-        
-        # render auxiliary statuses
-        others = [val for key, val in self._values.items() if key is not None]
-        for i, other_text in enumerate(others):
-            render_status(other_text, self._rect.w // 3 + i * self._rect.w // len(others))
-        
-        return [self._rect]
-    
-    def update(self, val, key=None):
-        self._values[key] = val
-
-    @property
-    def rect(self):
-        return self._rect
-    
-    @classmethod
-    def get_preferred_rect(cls, available_space: pygame.Rect, lines: int):
-        status_rect = available_space.copy()
-        status_rect.h = cls.height_per_line * lines
-        status_rect.bottom = available_space.bottom
-        return status_rect
 
 
 @dataclass(eq=False)
@@ -167,6 +110,8 @@ class GameWindow:
                 game_log.debug(f'window resized')
                 self.realign(new_size=(event.w, event.h))
                 yield event
+            elif event.type == MOUSEMOTION:
+                self.status_bar.update(f'cell: {self.grid.pos_of(event.pos)}', key='mouse_debug')
             else:
                 yield event
 
@@ -179,11 +124,29 @@ class GameWindow:
             if clock.tick() <= self.config.double_click_time and \
                     self.grid.pos_of(event.pos) == _last_clicked_cell[0]:
                 valid_dbl_click = True
-
+    
             _last_clicked_cell[0] = self.grid.pos_of(event.pos)
 
         return valid_dbl_click
         # TODO: maybe implement a multi-click feature
+
+
+################################################################################
+#                              Game State Machine                              #
+################################################################################
+
+# noinspection PyPep8Naming
+class state(object):
+    
+    def __init__(self, f):
+        self.func = f
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        from functools import partial
+        return partial(self.__call__, instance)
 
 
 class Game:
@@ -200,6 +163,7 @@ class Game:
     #                             State Functions                              #
     ############################################################################
     
+    @state
     def _new_game(self, *args):
         self.board = SquareBoard(self.game_window.grid, uniform_random(0.2), self.config)
         self._last_reward = 0.
@@ -214,7 +178,8 @@ class Game:
         else:
             game_log.debug('Changing state: new_game --> playing')
             return self._playing
-
+    
+    @state
     def _first_select(self, *args):
         while True:
             for event in self.game_window.events():
@@ -225,6 +190,7 @@ class Game:
             
             yield
 
+    @state
     def _playing(self, *args):
         while True:
             actions = []
@@ -253,17 +219,13 @@ class Game:
             masked_proximity = self.board.proximity_matrix.copy()
             masked_proximity[~self.board.open_layout] = 0
             next_board_state = HiddenBoardState(
-                    openable_layout=~self.board.open_layout & ~self.board.flag_layout,
-                    flag_layout=self.board.flag_layout,
-                    proximity_matrix=masked_proximity)
+                    openable=~self.board.open_layout & ~self.board.flag_layout,
+                    flagged=self.board.flag_layout,
+                    proximity=masked_proximity)
             
             agent_actions = (yield next_board_state, self._last_reward)  # TODO change reward to status
             if agent_actions is not None:
                 actions.extend(agent_actions)
-    
-            if any(map(lambda a: a.type == ActionType.SURRENDER, actions)):
-                game_log.debug('Changing state: playing --> game_end')
-                return self._game_end
         
             # process all actions and determine next reward
             for action in actions:
@@ -278,12 +240,24 @@ class Game:
                 else:
                     game_log.warning(f'Unknown action: {action}, skipping processing')
         
+            if any(map(lambda a: a.type == ActionType.SURRENDER, actions)):
+                game_log.debug('Changing state: playing --> game_end')
+                return self._game_end
+        
             # TODO determine feedback
+            
+            self.game_window.status_bar.update(
+                    f'{self.board.open_mines + self.board.flags}/{self.board.mines} mines',
+                    key='mines')
+            self.game_window.status_bar.update(
+                    f'{100*self.board.open_cells/(self.board.cells - self.board.mines):.2f}% cleared',
+                    key='cleared')
             
             if self.board.failed or self.board.completed:
                 game_log.debug('Changing state: playing --> game_end')
                 return self._game_end
     
+    @state
     def _game_end(self, *args):
         self.games_finished += 1
         
@@ -299,11 +273,10 @@ class Game:
 
         # TODO add game end callbacks/hooks
         
-        logutils.save_board(f'game_user_{self.games_finished}.npz',
-                            self.board.mine_layout,
-                            self.board.open_layout,
-                            self.board.flag_layout)
-        
+        #logutils.save_board(f'game_user_{self.games_finished}.npz',
+        #                    self.board.mine_layout,
+        #                    self.board.open_layout,
+        #                    self.board.flag_layout)
         
         while True:
             for event in self.game_window.events():
