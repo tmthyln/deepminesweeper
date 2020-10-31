@@ -1,20 +1,18 @@
 import os
 import re
 import sys
-from abc import ABC
-from collections import namedtuple
 from dataclasses import dataclass
-from typing import List, Sequence, Type
+from typing import Type
 
 import pygame
 from pygame.locals import *
 
 import minesweeper.logutils as logutils
+from minesweeper.actions import Action, ActionType
 from minesweeper.board import HiddenBoardState
+from minesweeper.boards import SquareBoard, SquareGrid
 from minesweeper.config import Config
 from minesweeper.elements import StatusBar
-from minesweeper.actions import Action, ActionType
-from minesweeper.boards import SquareBoard, SquareGrid
 from minesweeper.seeders import uniform_random
 from minesweeper.utils import Delayer
 
